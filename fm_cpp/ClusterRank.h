@@ -1,0 +1,490 @@
+/*
+ * ClusterRank.h
+ *
+ *  Created on: Dec 21, 2015
+ *      Author: lin
+ */
+
+#ifndef CLUSTERRANK_H_
+#define CLUSTERRANK_H_
+#include "Util.h"
+#include "Recommend.h"
+#include "Cluster.h"
+
+namespace primer {
+
+class ClusterRank {
+public:
+	ClusterRank();
+	virtual ~ClusterRank();
+};
+
+} /* namespace primer */
+
+#endif /* CLUSTERRANK_H_ */
+
+using namespace std;
+
+void sgdRCluster(ddvec &userMatrix, ddvec &videoMatrix, ivec &user, ivec &leftv, ivec &rightv,
+				ddvec &rank_u_matrix, ddvec &rank_v_matrix, double rank_regv,
+				double learnRate, ivec &indice, double &delta, double &LL, double regv) {
+	int numTrain = user.size();
+	int dim = userMatrix[0].size();
+	int numVideo = videoMatrix.size();
+	std::random_shuffle(indice.begin(), indice.end());
+	LL = 0.; delta = 0.;
+
+	for(int i = 0; i < numTrain; i++) {
+		double tmpdelta = 0.;
+		int cnt = 0;
+
+		int idx = indice[i];
+		int u = user[idx], vl = leftv[idx], vr = rightv[idx];
+
+		int randv = ran_range(numVideo);
+
+		double score = 0.;
+		for(int f = 0; f < dim; f++) {
+			score += userMatrix[u][f] * videoMatrix[vl][f] * videoMatrix[vr][f];
+//			score -= userMatrix[u][f] * videoMatrix[vl][f] * videoMatrix[randv][f];
+		}
+		double normalizer = (1-logistic(score));
+		dvec uvector(dim), vlvector(dim), vrvector(dim), randvector(dim);
+
+		double grad = 0.;
+
+		// user update
+		for(int f = 0; f < dim; f++) {
+			grad = normalizer * videoMatrix[vl][f] * videoMatrix[vr][f];
+//			grad -= normalizer * videoMatrix[vl][f] * videoMatrix[randv][f];
+			grad -= 2 * userMatrix[u][f] * regv;
+//			grad += 2 * (rank_u_matrix[u][f] - userMatrix[u][f]) * rank_regv;
+			uvector[f] = userMatrix[u][f] + learnRate * grad;
+			tmpdelta += grad * grad;
+			cnt ++;
+		}
+
+		// left update
+		for(int f = 0; f < dim; f++) {
+			grad = normalizer * userMatrix[u][f] * videoMatrix[vr][f];
+//			grad -= normalizer * userMatrix[u][f] * videoMatrix[randv][f];
+			grad -= 2 * videoMatrix[vl][f] * regv;
+			grad += 2 * (rank_v_matrix[vl][f] -videoMatrix[vl][f]) * rank_regv;
+			vlvector[f] = videoMatrix[vl][f] + learnRate * grad;
+			tmpdelta += grad * grad;
+			cnt ++;
+		}
+
+		// right update
+		for(int f = 0; f < dim; f++) {
+			grad = normalizer * userMatrix[u][f] * videoMatrix[vl][f];
+			grad -= 2 * videoMatrix[vr][f] * regv;
+			grad += 2 * (rank_v_matrix[vr][f] - videoMatrix[vr][f]) * rank_regv;
+			vrvector[f] = videoMatrix[vr][f] + learnRate * grad;
+			tmpdelta += grad * grad;
+			cnt ++;
+		}
+
+		// random update
+//		for(int f = 0; f < dim; f++) {
+//			grad = -normalizer * userMatrix[u][f] * videoMatrix[vl][f];
+//			grad -= 2 * videoMatrix[randv][f] * regv;
+//			grad += 2 * (rank_v_matrix[randv][f] - videoMatrix[randv][f]) * rank_regv;
+//			randvector[f] = videoMatrix[randv][f] + learnRate * grad;
+//			tmpdelta += grad * grad;
+//			cnt ++;
+//		}
+
+		// store update
+		for(int f = 0; f < dim; f++) {
+			userMatrix[u][f] = uvector[f];
+			videoMatrix[vl][f] = vlvector[f];
+			videoMatrix[vr][f] = vrvector[f];
+//			videoMatrix[randv][f] = randvector[f];
+		}
+
+		tmpdelta /= cnt;
+		delta += tmpdelta;
+		LL += logloss(score);
+
+	}
+
+	delta /= numTrain;
+}
+void sgdCRank(ivec &indice, ivec &user, ivec &video, map<int,ivec> &done,
+		ddvec &clu_u_matrix, ddvec &clu_v_matrix, double clu_regv,
+		dvec &videoVector, ddvec &userMatrix, ddvec &videoMatrix,
+		double learnRate, double regw, double regv,
+		double &LL, double &delta) {
+	int dim = userMatrix[0].size();
+	std::random_shuffle(indice.begin(), indice.end());
+
+	LL = 0.; delta = 0.;
+	for(int i = 0; i < indice.size(); i++) {
+		double tmpdelta = 0.;
+		int cnt = 0;
+
+		int idx = indice[i];
+		int u = user[idx], vp = video[idx];
+		int vn = getNegative(done[u], videoVector.size());
+
+		double vp_scalar = 0., vn_scalar = 0.;
+		dvec u_vector(dim), vp_vector(dim), vn_vector(dim);
+
+		double tmpscore = computeScore(u, vp, vn, videoVector, userMatrix, videoMatrix);
+		double normalizer = (1-logistic(tmpscore));
+
+		double g = 0.;
+
+//		// unary postive
+//		g = normalizer - 2 * regw * videoVector[vp];
+//		vp_scalar = videoVector[vp] + learnRate * g;
+//		tmpdelta += g * g;
+//		cnt ++;
+//
+//		// unary negative
+//		g = -normalizer - 2 * regw * videoVector[vn];
+//		vn_scalar = videoVector[vn] + learnRate * g;
+//		tmpdelta += g * g;
+//		cnt ++;
+
+		// user
+		for(int d = 0; d < dim; d++) {
+			g = normalizer * (videoMatrix[vp][d] - videoMatrix[vn][d]);
+			g -= 2 * regv * userMatrix[u][d];
+//			g -= 2 * regv * (userMatrix[u][d] - clu_u_matrix[u][d]);
+			u_vector[d] = userMatrix[u][d] + learnRate * g;
+			tmpdelta += g * g;
+			cnt ++;
+		}
+
+		// pairwise positive
+		for(int d = 0; d < dim; d++) {
+			g = normalizer * userMatrix[u][d];
+//			g -= 2 * regv * videoMatrix[vp][d];
+			g -= 2 * regv * (videoMatrix[vp][d] - clu_v_matrix[vp][d]);
+			vp_vector[d] = videoMatrix[vp][d] + learnRate * g;
+			tmpdelta += g * g;
+			cnt ++;
+		}
+
+		// pairwise negativ
+		for(int d = 0; d < dim; d++) {
+			g = -normalizer * userMatrix[u][d];
+//			g -= 2 * regv * videoMatrix[vn][d];
+			g -= 2 * regv * (videoMatrix[vn][d] - clu_v_matrix[vn][d]);
+			vn_vector[d] = videoMatrix[vn][d] + learnRate * g;
+			tmpdelta += g * g;
+			cnt ++;
+		}
+
+
+
+		videoVector[vp] = vp_scalar; videoVector[vn] = vn_scalar;
+		for(int f = 0; f < dim; f++) {
+			userMatrix[u][f] = u_vector[f];
+			videoMatrix[vp][f] = vp_vector[f];
+			videoMatrix[vn][f] = vn_vector[f];
+		}
+
+		delta += tmpdelta/cnt;
+		LL += logloss(tmpscore);
+
+	}
+	delta /= indice.size();
+}
+
+//		coFactor(rank_indice, rank_user, rank_video, done, rank_order, // params for rank input
+//				rank_v_vector, rank_u_matrix, rank_v_matrix, // params for rank_feature
+//				learnRate, rank_regw, rank_regv, rank_LL, rank_grad // params for model
+//				clu_indice, clu_user, clu_lvideo, clu_rvideo, clu_regv); // params for cluster
+void coFactor(ivec &rank_indice, ivec &rank_user, ivec &rank_video, map<int,ivec> &done, ivec &rank_order,
+			  dvec &rank_v_vector, ddvec &rank_u_matrix, ddvec &rank_v_matrix,
+			  double learnRate, double rank_regw, double rank_regv, double &rank_LL, double &rank_grad,
+			  ivec &clu_vindice, ivec &clu_video, ivec &clu_luser, ivec &clu_ruser, ivec &clu_vdt, // input for cluster by video
+			  ivec &clu_uindice, ivec &clu_user, ivec &clu_lvideo, ivec &clu_rvideo, ivec &clu_udt,
+			  string method
+			  ) {
+		double rankRate = learnRate;
+		sgdRank(rank_indice, rank_user, rank_video, done,
+			rank_order,
+			rank_v_vector, rank_u_matrix, rank_v_matrix,
+			rankRate, rank_regw, rank_regv,
+			rank_LL, rank_grad);
+
+		double dumdelta, dumLL, dumregv = 0.;
+		double cluRate = 0.;
+		if(method.compare("byuser") == 0) {
+			cluRate = learnRate;
+			sgdCluster(rank_u_matrix, rank_v_matrix, clu_user, clu_lvideo, clu_rvideo, clu_udt, cluRate, clu_uindice, dumdelta, dumLL, dumregv, 720);
+		} else if(method.compare("byvideo") == 0) {
+			cluRate = learnRate;
+			sgdCluster(rank_v_matrix, rank_u_matrix, clu_video, clu_luser, clu_ruser, clu_vdt, cluRate, clu_vindice, dumdelta, dumLL, dumregv, 720);
+		} else if(method.compare("both") == 0) {
+			double clu_urate = learnRate;
+			double clu_vrate = learnRate * 0.05;
+			sgdCluster(rank_u_matrix, rank_v_matrix, clu_user, clu_lvideo, clu_rvideo, clu_udt, clu_urate, clu_uindice, dumdelta, dumLL, dumregv, 720);
+			sgdCluster(rank_v_matrix, rank_u_matrix, clu_video, clu_luser, clu_ruser, clu_vdt, clu_vrate, clu_vindice, dumdelta, dumLL, dumregv, 720);
+		} else if(method.compare("norm_user") == 0) {
+			cluRate = learnRate;
+			double phi = 50.;
+			sgdNormCluster(rank_u_matrix, rank_v_matrix, clu_user, clu_lvideo, clu_rvideo, clu_udt, cluRate, clu_uindice, dumdelta, dumLL, dumregv, 720, phi);
+		} else if(method.compare("bynorm_user") == 0) {
+			cluRate = learnRate;
+			double phi = 1.;
+			sgdCluster(rank_u_matrix, rank_v_matrix, clu_user, clu_lvideo, clu_rvideo, clu_udt, cluRate, clu_uindice, dumdelta, dumLL, dumregv, 720);
+			sgdNormCluster(rank_u_matrix, rank_v_matrix, clu_user, clu_lvideo, clu_rvideo, clu_udt, cluRate, clu_uindice, dumdelta, dumLL, dumregv, 720, phi);
+		}
+
+}
+int main() {
+
+	string dir = "/home/lin/workspace/data/youtube";
+	char sep = '\t';
+
+	// loading user and video map
+	std::cout << "loading user and video map data" << std::endl;
+	simap user_map, video_map;
+	ismap map_user, map_video;
+	string userpath = dir + "/block/user.map", videopath = dir + "/block/video.map";
+	loadMap(user_map, map_user, video_map, map_video, userpath, videopath, sep);
+	int numUser = user_map.size(), numVideo = video_map.size();
+
+	// global params
+	int dim = 45;
+	double stdev = 0.1;
+	string path;
+
+
+	// prepare data structure for ranking
+	std::cout << "preparing data structure for ranking" << std::endl;
+	ivec rank_user, rank_video, rank_order, rank_utest, rank_vtest;
+	lvec rank_time;
+	dvec rank_v_vector;
+	ddvec rank_u_matrix, rank_v_matrix;
+	map<int,ivec> done; map<int, lvec> time;
+	ivec rank_indice;
+	int num_rank_train = 0;
+	{
+		// loading ranking training data
+		std::cout << "loading ranking training data" << std::endl;
+		path = dir + "/train.dat";
+		loadRank(rank_user, rank_video, rank_time, user_map, video_map, path, sep);
+		num_rank_train = rank_user.size();
+
+		// loading ranking testing data
+		std::cout << "loading ranking testing data" << std::endl;
+		path = dir + "/test.dat";
+		loadTest(rank_utest, rank_vtest, user_map, video_map, path, sep);
+
+		// loading done data
+		std::cout << "loading done data" << std::endl;
+		loadDone(done, rank_user, rank_video);
+
+		// loading done time
+		std::cout << "loading done time" << std::endl;
+		loadTime(time, rank_user, rank_time);
+		loadOrder(rank_order, time, rank_user, rank_time);
+
+		// initialize ranking features
+		std::cout << "initializing ranking features" << std::endl;
+		initVector(rank_v_vector, numVideo);
+		initMatrix(rank_u_matrix, rank_v_matrix, stdev, numUser, numVideo, dim);
+
+		// init random shuffling indice
+		for(int i = 0; i < num_rank_train; i++) rank_indice.push_back(i);
+	}
+
+	// prepare data structure for clustering, cluster by user
+	std::cout << "preparing data structure for clustering" << std::endl;
+	ivec clu_user, clu_lvideo, clu_rvideo, clu_udt, clu_utest, clu_vltest, clu_vrtest, clu_dtutest;
+	ddvec clu_u_matrix, clu_v_matrix;
+	map<int,ivec> target;
+	ivec clu_uindice;
+	int num_cluster_utrain = 0;
+	{
+		// loading cluster train data
+		std::cout << "loading cluster training data" << std::endl;
+		path = dir + "/cutrain.dat";
+		loadCluster(user_map, video_map, clu_user, clu_lvideo, clu_rvideo, clu_udt, path, sep);
+		num_cluster_utrain = clu_user.size();
+
+		// loading cluster testing data
+		std::cout << "loading cluster testing data" << std::endl;
+		path = dir + "/cutest.dat";
+		loadCluster(user_map, video_map, clu_utest, clu_vltest, clu_vrtest, clu_dtutest, path, sep);
+
+		// loading target video
+		std::cout << "loading target video..." << std::endl;
+		path = dir + "/test.dat";
+		loadTarget(user_map, video_map, target, path);
+
+		// initialize cluster features
+		std::cout << "initializing cluster features..." << std::endl;
+		initMatrix(clu_u_matrix, clu_v_matrix, stdev, numUser, numVideo, dim);
+
+		// init random shuffling
+		for(int i = 0; i < num_cluster_utrain; i++) clu_uindice.push_back(i);
+	}
+	// prepare data structure for clustering, cluster by video
+	ivec clu_video, clu_luser, clu_ruser, clu_vdt, clu_vtest, clu_ultest, clu_urtest, clu_dtvtest;
+	ivec clu_vindice;
+	int num_cluster_vtrain = 0;
+	{
+		// loading cluster train data
+		std::cout << "loading cluster training data" << std::endl;
+		path = dir + "/cvtrain.dat";
+		loadCluster(user_map, video_map, clu_video, clu_luser, clu_ruser, clu_vdt, path, sep);
+		num_cluster_vtrain = clu_video.size();
+
+		// loading cluster testing data
+		std::cout << "loading cluster testing data" << std::endl;
+		path = dir + "/cvtest.dat";
+		loadCluster(user_map, video_map, clu_vtest, clu_ultest, clu_urtest, clu_dtvtest, path, sep);
+
+		// init random shuffling
+		for(int i = 0; i < num_cluster_vtrain; i++) clu_vindice.push_back(i);
+	}
+
+	// start the training
+	std::cout << "start the ranking and clustering learning" << std::endl;
+	int numIter = 10000;
+	double learnRate = 0.05;
+	// learning params for ranking
+	int topK = 100;
+	double rank_regw = 0.01, rank_regv = 0.01;
+	double rank_LL = 0., rank_grad = 0.;
+	// learning params for cluster
+	double clu_regv = 0.03;
+	double clu_LL = 0., clu_grad = 0.;
+	string method = "clu_norm_user";
+	// convergence file
+//	string rank_to_clu = "rank_to_clu" + learnRate + "_" + rank_regv + "_" + clu_regv;
+	stringstream ss;
+	ss << "rank" << "_" << learnRate << "_" << rank_regv << "_" << clu_regv;
+//	ss << "r" << "_" << learnRate << "_" << rank_regv << "_" << clu_regv;
+	string clu_to_rank = ss.str();
+	ofstream writeFile;
+	writeFile.open(("/home/lin/Desktop/" + clu_to_rank).c_str(), ios::out);
+	writeFile << "LearnRate: " << learnRate << "\tdim: " << dim << "\trank_regw: " << rank_regw << "\trank_regv: " << rank_regv << "\tclu_regv: " << clu_regv << "\n";
+	for(int i = 0; i < numIter; i++) {
+		std::cout << "new iter..." << std::endl;
+		writeFile << "new iter...\n";
+		if(method.compare("sgd") == 0) {
+			sgdRank(rank_indice, rank_user, rank_video, done,
+				rank_order,
+				rank_v_vector, rank_u_matrix, rank_v_matrix,
+				learnRate, rank_regw, rank_regv,
+				rank_LL, rank_grad);
+
+		} else if(method.compare("clu_user") == 0) {
+			coFactor(rank_indice, rank_user, rank_video, done, rank_order, // input for rank
+					rank_v_vector, rank_u_matrix, rank_v_matrix, // params for rank_feature
+					learnRate, rank_regw, rank_regv, rank_LL, rank_grad, // params for model
+					clu_vindice, clu_video, clu_luser, clu_ruser, clu_vdt, // input for cluster by video
+					clu_uindice, clu_user, clu_lvideo, clu_rvideo, clu_udt, // input for cluster by user
+					"byuser"
+					); // input for cluster by user
+		} else if(method.compare("clu_video") == 0) {
+			coFactor(rank_indice, rank_user, rank_video, done, rank_order, // input for rank
+					rank_v_vector, rank_u_matrix, rank_v_matrix, // params for rank_feature
+					learnRate, rank_regw, rank_regv, rank_LL, rank_grad, // params for model
+					clu_vindice, clu_video, clu_luser, clu_ruser, clu_vdt, // input for cluster by video
+					clu_uindice, clu_user, clu_lvideo, clu_rvideo, clu_udt, // input for cluster by user
+					"byvideo"
+					); // input for cluster by user
+		} else if(method.compare("clu_both") == 0) {
+			coFactor(rank_indice, rank_user, rank_video, done, rank_order, // input for rank			coFactor(rank_indice, rank_user, rank_video, done, rank_order, // input for rank
+					rank_v_vector, rank_u_matrix, rank_v_matrix, // params for rank_feature
+					learnRate, rank_regw, rank_regv, rank_LL, rank_grad, // params for model
+					clu_vindice, clu_video, clu_luser, clu_ruser, clu_vdt, // input for cluster by video
+					clu_uindice, clu_user, clu_lvideo, clu_rvideo, clu_udt, // input for cluster by user
+					"norm_user"
+					); // input for cluster by user
+		} else if (method.compare("clu_norm_user") == 0) {
+			coFactor(rank_indice, rank_user, rank_video, done, rank_order, // input for rank
+					rank_v_vector, rank_u_matrix, rank_v_matrix, // params for rank_feature
+					learnRate, rank_regw, rank_regv, rank_LL, rank_grad, // params for model
+					clu_vindice, clu_video, clu_luser, clu_ruser, clu_vdt, // input for cluster by video
+					clu_uindice, clu_user, clu_lvideo, clu_rvideo, clu_udt, // input for cluster by user
+					"norm_user"
+					); // input for cluster by user
+		} else if(method.compare("clu_bynorm_user") == 0) {
+			coFactor(rank_indice, rank_user, rank_video, done, rank_order, // input for rank
+					rank_v_vector, rank_u_matrix, rank_v_matrix, // params for rank_feature
+					learnRate, rank_regw, rank_regv, rank_LL, rank_grad, // params for model
+					clu_vindice, clu_video, clu_luser, clu_ruser, clu_vdt, // input for cluster by video
+					clu_uindice, clu_user, clu_lvideo, clu_rvideo, clu_udt, // input for cluster by user
+					"bynorm_user"
+					); // input for cluster by user
+		}
+
+		// learning for ranking
+		double prec = 0., trainHit = 0., hit = 0., testAll = 0., rankscore = 0.;
+		bool toFile = false;
+		if((i+1) % 50 == 0) {
+			evaluateRank(rank_utest, rank_vtest, done, rank_v_vector, rank_u_matrix, rank_v_matrix, topK, prec, trainHit, hit, testAll, rankscore, map_video, map_user, dir+"/block", toFile);
+			toFile = false;
+			cout << method << "\titerNum: " << i << "\tLL: " << rank_LL << "\tdelta: " << rank_grad << "\tprec: " << prec << "\ttrainHit: " << trainHit << "\ttestHit: " << hit
+					<< "\ttestAll: " << testAll << "\trankscore: " << rankscore << endl;
+			writeFile << "iterNum: " << i << "\tLL: " << rank_LL << "\tdelta: " << rank_grad << "\tprec: " << prec << "\ttrainHit: " << trainHit << "\ttestHit: " << hit
+					<< "\ttestAll: " << testAll << "\trankscore: " << rankscore << "\n";
+		} else {
+			cout << method << "\titerNum: " << i << "\tLL: " << rank_LL << "\tdelta: " << rank_grad << endl;
+			writeFile << "iterNum: " << i << "\tLL: " << rank_LL << "\tdelta: " << rank_grad << "\n";
+		}
+
+
+
+	}
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
