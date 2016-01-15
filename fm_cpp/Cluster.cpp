@@ -70,7 +70,7 @@ void loadCluster(simap &user_map, simap &video_map, ivec &key, ivec &left, ivec 
 	}
 }
 void sgdNormCluster(ddvec &midMatrix, ddvec &sideMatrix, ivec &mid, ivec &left, ivec &right, ivec &clu_dt,
-		double learnRate, ivec &indice, double &delta, double &LL, double regv, int scale, double phi) {
+		double learnRate, ivec &indice, double &delta, double &LL, double regv, int scale, double phi, double alpha) {
 	int numTrain = mid.size();
 	int dim = midMatrix[0].size();
 	int numVideo = sideMatrix.size();
@@ -111,14 +111,19 @@ void sgdNormCluster(ddvec &midMatrix, ddvec &sideMatrix, ivec &mid, ivec &left, 
 
 
 		// mid update
+		dvec mul_vec(dim);
+		for(int d = 0; d < dim; d++) {	mul_vec[d] = 0.; }
 		double sum_ex_over_c_plus_ex_square = 0.;
 		for(int d = 0; d < dim; d++) {
 			double multiplier = lhs_vec[d] * rhs_vec[d];
 			double C = m_norm - exp(m_f[d]*phi);
 			double ex = m_vec[d] * m_norm;
-			grad = normalize * multiplier * ((C*ex) / ((ex+C)*(ex+C)));
 
-			sum_ex_over_c_plus_ex_square += (ex/((ex+C)*(ex+C)));
+			for(int dd = 0; dd < dim; dd++) {
+				if(dd == d) continue;
+				mul_vec[dd] += multiplier * ex;
+			}
+			grad = alpha * normalize * multiplier * ((C*ex) / ((ex+C)*(ex+C)));
 
 			mvector[d] = m_f[d] + disc * learnRate * grad;
 			tmpdelta += grad * grad;
@@ -129,22 +134,25 @@ void sgdNormCluster(ddvec &midMatrix, ddvec &sideMatrix, ivec &mid, ivec &left, 
 			double C = m_norm - exp(m_f[d]*phi);
 			double ex = m_vec[d] * m_norm;
 
-			sum_ex_over_c_plus_ex_square -= ex/((ex+C)*(ex+C));
-			grad = normalize * multiplier * exp(m_f[d]*phi) * sum_ex_over_c_plus_ex_square;
+			double ex_over_cplusex_square = ex/((ex+C)*(ex+C));
+			grad = alpha * normalize * ex_over_cplusex_square * mul_vec[d];
 
 			mvector[d] += disc * learnRate * grad;
 			tmpdelta += grad * grad;
 		}
 
 		// lhs update
-		sum_ex_over_c_plus_ex_square = 0.;
+		for(int d = 0; d < dim; d++) {	mul_vec[d] = 0.; }
 		for(int d = 0; d < dim; d++) {
 			double multiplier = m_vec[d] * rhs_vec[d];
 			double C = lhs_norm - exp(lhs_f[d]*phi);
 			double ex = lhs_vec[d] * lhs_norm;
-			grad = normalize * multiplier * ((C*ex) / ((ex + C)*(ex+C)));
+			grad =  alpha * normalize * multiplier * ((C*ex) / ((ex + C)*(ex+C)));
 
-			sum_ex_over_c_plus_ex_square += (ex/((ex+C)*(ex+C)));
+			for(int dd = 0; dd < dim; dd++) {
+				if(dd == d) continue;
+				mul_vec[dd] += multiplier * ex;
+			}
 
 			lhsvector[d] = lhs_f[d] + disc * learnRate * grad;
 			tmpdelta += grad * grad;
@@ -155,22 +163,25 @@ void sgdNormCluster(ddvec &midMatrix, ddvec &sideMatrix, ivec &mid, ivec &left, 
 			double C = lhs_norm - exp(lhs_f[d]*phi);
 			double ex = lhs_vec[d] * lhs_norm;
 
-			sum_ex_over_c_plus_ex_square -= ex/((ex+C)*(ex+C));
-			grad = normalize * multiplier * exp(lhs_f[d]*phi) * sum_ex_over_c_plus_ex_square;
+			double ex_over_cplusex_square = ex/((ex+C)*(ex+C));
+			grad = alpha * normalize * ex_over_cplusex_square * mul_vec[d];
 
 			lhsvector[d] += disc * learnRate * grad;
 			tmpdelta += grad * grad;
 		}
 
 		// rhs update
-		sum_ex_over_c_plus_ex_square = 0.;
+		for(int d = 0; d < dim; d++) {	mul_vec[d] = 0.; }
 		for(int d = 0; d < dim; d++) {
 			double multiplier = m_vec[d] * lhs_vec[d];
 			double C = rhs_norm - exp(rhs_f[d]*phi);
 			double ex = rhs_vec[d] * rhs_norm;
-			grad = normalize * multiplier * ((C*ex) / ((ex + C)*(ex+C)));
+			grad = alpha * normalize * multiplier * ((C*ex) / ((ex + C)*(ex+C)));
 
-			sum_ex_over_c_plus_ex_square += (ex/((ex+C)*(ex+C)));
+			for(int dd = 0; dd < dim; dd++) {
+				if(dd == d) continue;
+				mul_vec[dd] += multiplier * ex;
+			}
 
 			rhsvector[d]  = rhs_f[d] + disc * learnRate * grad;
 			tmpdelta += grad * grad;
@@ -181,8 +192,8 @@ void sgdNormCluster(ddvec &midMatrix, ddvec &sideMatrix, ivec &mid, ivec &left, 
 			double C = rhs_norm - exp(rhs_f[d]*phi);
 			double ex = rhs_vec[d] * rhs_norm;
 
-			sum_ex_over_c_plus_ex_square -= ex/((ex+C)*(ex+C));
-			grad = normalize * multiplier * exp(rhs_f[d]*phi) * sum_ex_over_c_plus_ex_square;
+			double ex_over_cplusex_square = ex/((ex+C)*(ex+C));
+			grad = alpha * normalize * ex_over_cplusex_square * mul_vec[d];
 
 			rhsvector[d] += disc * learnRate * grad;
 			tmpdelta += grad * grad;
@@ -204,7 +215,7 @@ void sgdNormCluster(ddvec &midMatrix, ddvec &sideMatrix, ivec &mid, ivec &left, 
 	delta /= numTrain;
 }
 void sgdCluster(ddvec &midMatrix, ddvec &sideMatrix, ivec &mid, ivec &left, ivec &right, ivec &clu_dt,
-		double learnRate, ivec &indice, double &delta, double &LL, double regv, int scale) {
+		double learnRate, ivec &indice, double &delta, double &LL, double regv, int scale, double alpha) {
 	int numTrain = mid.size();
 	int dim = midMatrix[0].size();
 	int numVideo = sideMatrix.size();
@@ -232,41 +243,42 @@ void sgdCluster(ddvec &midMatrix, ddvec &sideMatrix, ivec &mid, ivec &left, ivec
 
 		dt = 1 + dt/scale;
 		double disc = 1./dt;
+		disc = 1.;
 		// user update
 		for(int f = 0; f < dim; f++) {
-			grad = normalizer * sideMatrix[vl][f] * sideMatrix[vr][f];
-			grad -= normalizer * sideMatrix[vl][f] * sideMatrix[randv][f];
+			grad = alpha * normalizer * sideMatrix[vl][f] * sideMatrix[vr][f];
+			grad -= alpha * normalizer * sideMatrix[vl][f] * sideMatrix[randv][f];
 			grad -= 2 * midMatrix[u][f] * regv;
 			uvector[f] = midMatrix[u][f] + disc * learnRate * grad;
-			tmpdelta += grad * grad;
+			tmpdelta += abs(grad);
 			cnt ++;
 		}
 
 		// left update
 		for(int f = 0; f < dim; f++) {
-			grad = normalizer * midMatrix[u][f] * sideMatrix[vr][f];
-			grad -= normalizer * midMatrix[u][f] * sideMatrix[randv][f];
+			grad = alpha * normalizer * midMatrix[u][f] * sideMatrix[vr][f];
+			grad -= alpha * normalizer * midMatrix[u][f] * sideMatrix[randv][f];
 			grad -= 2 * sideMatrix[vl][f] * regv;
 			vlvector[f] = sideMatrix[vl][f] + disc * learnRate * grad;
-			tmpdelta += grad * grad;
+			tmpdelta += abs(grad);
 			cnt ++;
 		}
 
 		// right update
 		for(int f = 0; f < dim; f++) {
-			grad = normalizer * midMatrix[u][f] * sideMatrix[vl][f];
+			grad = alpha * normalizer * midMatrix[u][f] * sideMatrix[vl][f];
 			grad -= 2 * sideMatrix[vr][f] * regv;
 			vrvector[f] = sideMatrix[vr][f] + disc * learnRate * grad;
-			tmpdelta += grad * grad;
+			tmpdelta += abs(grad);
 			cnt ++;
 		}
 
 		// random update
 		for(int f = 0; f < dim; f++) {
-			grad = -normalizer * midMatrix[u][f] * sideMatrix[vl][f];
+			grad = -alpha * normalizer * midMatrix[u][f] * sideMatrix[vl][f];
 			grad -= 2 * sideMatrix[randv][f] * regv;
 			randvector[f] = sideMatrix[randv][f] + disc * learnRate * grad;
-			tmpdelta += grad * grad;
+			tmpdelta += abs(grad);
 			cnt ++;
 		}
 
@@ -306,31 +318,31 @@ void loadTarget(simap &user_map, simap &video_map, map<int, vector<int> > &targe
 
 
 void evaluateCluster(ddvec &userMatrix, ddvec &videoMatrix, map<int,vector<int> > &target, ivec &utest, ivec &vltest, ivec &vrtest, double &hit, double &prec) {
-	int numTest = utest.size();
-	int numVideo = videoMatrix.size();
-	int dim = userMatrix[0].size();
-	hit = 0.;
-
-	for(int i = 0; i < numTest; i++) {
-		cout << i << endl;
-		int u = utest[i], vl = vltest[i], vr = vrtest[i];
-		ivec candidates = target[u];
-		dvec scores;
-
-		for(int j = 0; j < candidates.size(); j++) {
-			double score = 0.;
-			for(int f = 0; f < dim; f++) {
-				score += userMatrix[u][f] * videoMatrix[vl][f] * videoMatrix[candidates[j]][f];
-			}
-			scores.push_back(score);
-		}
-		vector<size_t> rank = sort_indexes(scores);
-		int pre1 = candidates[rank[0]];
-		if(pre1 == vr) {
-			hit += 1.;
-		}
-	}
-	prec = hit / (numTest*3);
+//	int numTest = utest.size();
+//	int numVideo = videoMatrix.size();
+//	int dim = userMatrix[0].size();
+//	hit = 0.;
+//
+//	for(int i = 0; i < numTest; i++) {
+//		cout << i << endl;
+//		int u = utest[i], vl = vltest[i], vr = vrtest[i];
+//		ivec candidates = target[u];
+//		dvec scores;
+//
+//		for(int j = 0; j < candidates.size(); j++) {
+//			double score = 0.;
+//			for(int f = 0; f < dim; f++) {
+//				score += userMatrix[u][f] * videoMatrix[vl][f] * videoMatrix[candidates[j]][f];
+//			}
+//			scores.push_back(score);
+//		}
+//		vector<size_t> rank = sort_indexes(scores);
+//		int pre1 = candidates[rank[0]];
+//		if(pre1 == vr) {
+//			hit += 1.;
+//		}
+//	}
+//	prec = hit / (numTest*3);
 }
 
 

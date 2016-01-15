@@ -19,3 +19,4 @@ ClusterRank::~ClusterRank() {
 }
 
 } /* namespace primer */
+

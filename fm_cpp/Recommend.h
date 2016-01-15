@@ -38,7 +38,7 @@ void topping(ivec &tops, std::vector<size_t> &rank, std::map<int, ivec> done,
 			int u, int topK, double &trainHit);
 void evaluateRank(ivec &utest, ivec &vtest, std::map<int, ivec> &done,
 		dvec videoVector, ddvec userMatrix, ddvec videoMatrix,
-		int topK, double &prec, double &trainHit, double &testHit, double &testAll, double &rankscore, ismap& map_video, ismap &map_user, std::string dir, bool toFile);
+		int topK, double &prec, double &recall, double &mean_ap, double &trainHit, double &testHit, double &testAll, double &rankscore, ismap& map_video, ismap &map_user, std::string dir, bool toFile);
 void loadRank(ivec &user, ivec &video, lvec &time, simap &user_map, simap &video_map, std::string datpath, char sep);
 void loadTest(ivec &utest, ivec &vtest, simap &user_map, simap &video_map, std::string datpath, char sep);
 void initVector(dvec &videoVector, int numVideo);

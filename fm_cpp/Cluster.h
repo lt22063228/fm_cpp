@@ -22,9 +22,9 @@ public:
 void loadMap(simap &user_map, ismap &map_user, simap &video_map, ismap &map_video, std::string userpath, std::string videopath, char sep);
 void loadCluster(simap &user_map, simap &video_map, ivec &key, ivec &left, ivec &right, ivec &clu_dt, std::string path, char sep);
 void sgdCluster(ddvec &midMatrix, ddvec &sideMatrix, ivec &key, ivec &left, ivec &right, ivec &clu_dt,
-		double learnRate, ivec &indice, double &delta, double &LL, double regv, int scale);
+		double learnRate, ivec &indice, double &delta, double &LL, double regv, int scale, double alpha);
 void sgdNormCluster(ddvec &midMatrix, ddvec &sideMatrix, ivec &mid, ivec &left, ivec &right, ivec &clu_dt,
-		double learnRate, ivec &indice, double &delta, double &LL, double regv, int scale, double phi);
+		double learnRate, ivec &indice, double &delta, double &LL, double regv, int scale, double phi, double alpha);
 void loadTarget(simap &user_map, simap &video_map, std::map<int, ivec > &target, std::string path);
 void evaluateCluster(ddvec &userMatrix, ddvec &videoMatrix, std::map<int,ivec> &target, ivec &utest, ivec &vltest, ivec &vrtest, double &hit, double &prec);
 

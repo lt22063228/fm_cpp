@@ -70,8 +70,8 @@ void initFeatures(dvec &videoVector, ddvec &userMatrix, ddvec &videoMatrix, doub
 double computeScore(int u, int vp, int vn, const dvec &videoVector, const ddvec &userMatrix, const ddvec &videoMatrix) {
 	double total = 0.;
 	int dim = videoMatrix[0].size();
-//	total += videoVector[vp];
-//	total -= videoVector[vn];
+	total += videoVector[vp];
+	total -= videoVector[vn];
 	for(int i = 0; i < dim; i++) {
 		total += userMatrix[u][i] * videoMatrix[vp][i];
 		total -= userMatrix[u][i] * videoMatrix[vn][i];
@@ -108,17 +108,17 @@ void sgdRank(const ivec &indice, const ivec &user, const ivec &video, map<int, i
 
 		double g = 0.;
 
-//		// unary postive
-//		g = normalizer - 2 * regw * videoVector[vp];
-//		vp_scalar = videoVector[vp] + learnRate * g;
-//		delta += g * g;
-//		cnt ++;
-//
-//		// unary negative
-//		g = -normalizer - 2 * regw * videoVector[vn];
-//		vn_scalar = videoVector[vn] + learnRate * g;
-//		delta += g * g;
-//		cnt ++;
+		// unary postive
+		g = normalizer - 2 * regw * videoVector[vp];
+		vp_scalar = videoVector[vp] + learnRate * g;
+		delta += abs(g);
+		cnt ++;
+
+		// unary negative
+		g = -normalizer - 2 * regw * videoVector[vn];
+		vn_scalar = videoVector[vn] + learnRate * g;
+		delta += abs(g);
+		cnt ++;
 
 		double disc = 1./ord;
 		// user
@@ -127,7 +127,7 @@ void sgdRank(const ivec &indice, const ivec &user, const ivec &video, map<int, i
 			g -= 2 * regv * userMatrix[u][d];
 			u_vector[d] = userMatrix[u][d] + learnRate * g;
 			total += u_vector[d];
-			delta += g * g;
+			delta += abs(g);
 			cnt ++;
 		}
 
@@ -137,7 +137,7 @@ void sgdRank(const ivec &indice, const ivec &user, const ivec &video, map<int, i
 			g -= 2 * regv * videoMatrix[vp][d];
 			vp_vector[d] = videoMatrix[vp][d] + learnRate * g;
 			total += vp_vector[d];
-			delta += g * g;
+			delta += abs(g);
 			cnt ++;
 		}
 
@@ -147,7 +147,7 @@ void sgdRank(const ivec &indice, const ivec &user, const ivec &video, map<int, i
 			g -= 2 * regv * videoMatrix[vn][d];
 			vn_vector[d] = videoMatrix[vn][d] + learnRate * g;
 			total += vn_vector[d];
-			delta += g * g;
+			delta += abs(g);
 			cnt ++;
 		}
 
@@ -175,14 +175,17 @@ void sgdRank(const ivec &indice, const ivec &user, const ivec &video, map<int, i
 
 
 void scoring(dvec &scores, int dim, int u,
-		const dvec &videoVector, const ddvec &userMatrix, const ddvec &videoMatrix) {
+		const dvec &videoVector, const ddvec &userMatrix, const ddvec &videoMatrix, map<int,ivec> done) {
 	for(int v = 0; v < videoVector.size(); v++) {
-//		double score = videoVector[v];
-		double score = 0.;
+		double score = videoVector[v];
+//		double score = 0.;
 		for(int d = 0; d < dim; d++) {
 			score += userMatrix[u][d] * videoMatrix[v][d];
 		}
 		scores.push_back(score);
+	}
+	for(int i = 0; i < done[u].size(); i++) {
+		scores[done[u][i]] = -1000.;
 	}
 
 }
@@ -203,7 +206,7 @@ void topping(ivec &tops, vector<size_t> &rank, map<int, ivec> done,
 
 void evaluateRank(ivec &utest, ivec &vtest, map<int, ivec> &done,
 		dvec videoVector, ddvec userMatrix, ddvec videoMatrix,
-		int topK, double &prec, double &trainHit, double &testHit, double &testAll, double &rankscore,
+		int topK, double &prec, double &recall, double &mean_ap, double &trainHit, double &testHit, double &testAll, double &rankscore,
 		ismap &video_map, ismap &user_map, string dir, bool toFile) {
 
 	// get ground truth for each user
@@ -223,48 +226,25 @@ void evaluateRank(ivec &utest, ivec &vtest, map<int, ivec> &done,
 	prec = 0.; trainHit = 0.; testHit = 0.;
 	set<string> vs;
 	set<string> us;
+	double ill = 0.;
 	for(int u = 0; u < done.size(); u++) {
 
 
 		// compute score for each video
 		dvec scores;
-		scoring(scores, dim, u, videoVector, userMatrix, videoMatrix);
-
-		// rank the video and got topK
-		vector<size_t> rank = sort_indexes(scores);
-		ivec tops;
-		topping(tops, rank, done, u, topK, trainHit);
-
-		// output the prediction to the file
-		if(toFile) {
-//			string file = dir + "/output/" + user_map[u] + "_" + test[u].size();
-			stringstream ss;
-			ss << dir << "/output/" << user_map[u] << "_" << test[u].size();
-			string file = ss.str();
-//			cout << file << endl;
-
-			ofstream writeFile;
-			writeFile.open(file.c_str(), ios::out);
-			ss.str("");
-			for(int i = 0; i < rank.size(); i++) {
-				ss << video_map[rank[i]] << " " << scores[rank[i]];
-				if(find(test[u].begin(), test[u].end(), rank[i]) != test[u].end()) {
-					ss << "    **********************************";
-				}
-				ss << std::endl;
-				writeFile << ss.str();
-				ss.str("");
-				writeFile.flush();
-			}
-			writeFile.close();
-		}
+		scoring(scores, dim, u, videoVector, userMatrix, videoMatrix, done);
 
 		int magic = 10;
+		// rank the video and got topK
+		vector<int> tops = sort_indexes(scores, magic, u);
+//		topping(tops, rank, done, u, topK, trainHit);
+
+
 		// calculate precision
 		double all = 0., hit = 0.;
 		double ap = 0.;
-		double denom = tops.size() < magic ? tops.size() : magic;
-		for(int r = 0; r < tops.size() && r < magic; r++) {
+		double recall_denom = test[u].size();
+		for(int r = 0; r < magic; r++) {
 			all += 1.;
 			testAll += 1.;
 			if(std::find(test[u].begin(), test[u].end(), tops[r]) != test[u].end()) {
@@ -272,13 +252,21 @@ void evaluateRank(ivec &utest, ivec &vtest, map<int, ivec> &done,
 				rankscore += 1./(1+r);
 				testHit += 1;
 				vs.insert(video_map[tops[r]]);
-//				std::cout << hit << " " << all << " " << denom << " " << ap << endl;
+				ap += hit/all;
 			}
 		}
-		prec += hit/all;
 
+		if(all != 0) {
+			recall += hit/recall_denom;
+			prec += hit/all;
+			mean_ap += ap/all;
+		} else {
+			ill += 1.;
+		}
 	}
-	prec /= done.size();
+	prec /= (done.size()-ill);
+	recall /= (done.size()-ill);
+	mean_ap /= (done.size()-ill);
 	cout << "vl size: " << vs.size() << endl;
 //	for(set<string>::iterator iter = vs.begin(); iter != vs.end(); iter ++) cout << *iter << endl;
 //	prec = testHit/testAll;

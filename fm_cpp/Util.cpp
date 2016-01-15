@@ -6,7 +6,7 @@
  */
 
 #include "Util.h"
-
+using namespace std;
 namespace primer {
 
 Util::Util() {
@@ -63,4 +63,36 @@ double ran_gaussian(double mean, double stdev) {
 	} else {
 		return mean + stdev*ran_gaussian();
 	}
+}
+ivec sort_indexes(dvec &v, int topK, int u) {
+//	if(u==1) {
+//		cout << "0" << endl;
+//	}
+	std::priority_queue<std::pair<double,int>, std::vector<std::pair<double,int> >, std::greater<std::pair<double, int> > > q;
+//	if(u == 1) {
+//		cout << "1" << endl;
+//	}
+	for(int i = 0; i < topK; i++) {
+		q.push(std::pair<double,int>(v[i],i));
+	}
+//	if(u == 1) {
+//		cout << "2" << endl;
+//	}
+	for(int i = topK; i < v.size(); i++) {
+		double top_value = q.top().first;
+		if(top_value < v[i]) {
+			q.pop();
+			q.push(std::pair<double,int>(v[i],i));
+		}
+	}
+//	if(u == 1) {
+//		cout << "3" << endl;
+//	}
+	std::vector<int> res;
+	for(int i = topK-1; i >= 0; i--) {
+		int top = q.top().second;
+		q.pop();
+		res.push_back(top);
+	}
+	return res;
 }

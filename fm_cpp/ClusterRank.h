@@ -200,46 +200,44 @@ void sgdCRank(ivec &indice, ivec &user, ivec &video, map<int,ivec> &done,
 //				clu_indice, clu_user, clu_lvideo, clu_rvideo, clu_regv); // params for cluster
 void coFactor(ivec &rank_indice, ivec &rank_user, ivec &rank_video, map<int,ivec> &done, ivec &rank_order,
 			  dvec &rank_v_vector, ddvec &rank_u_matrix, ddvec &rank_v_matrix,
-			  double learnRate, double rank_regw, double rank_regv, double &rank_LL, double &rank_grad,
+			  ddvec &clu_u_matrix, ddvec &clu_v_matrix, // params for cluster
+			  double rank_learnRate, double rank_regw, double rank_regv, double &rank_LL, double &rank_grad,
+			  double clu_learnRate, double clu_regv, double &clu_LL, double &clu_grad,
 			  ivec &clu_vindice, ivec &clu_video, ivec &clu_luser, ivec &clu_ruser, ivec &clu_vdt, // input for cluster by video
 			  ivec &clu_uindice, ivec &clu_user, ivec &clu_lvideo, ivec &clu_rvideo, ivec &clu_udt,
-			  string method
+			  string method, double alpha
 			  ) {
-		double rankRate = learnRate;
 		sgdRank(rank_indice, rank_user, rank_video, done,
 			rank_order,
 			rank_v_vector, rank_u_matrix, rank_v_matrix,
-			rankRate, rank_regw, rank_regv,
+			rank_learnRate, rank_regw, rank_regv,
 			rank_LL, rank_grad);
 
-		double dumdelta, dumLL, dumregv = 0.;
-		double cluRate = 0.;
+		double dumdelta = 0., dumLL = 0., dumregv = 0.;
 		if(method.compare("byuser") == 0) {
-			cluRate = learnRate;
-			sgdCluster(rank_u_matrix, rank_v_matrix, clu_user, clu_lvideo, clu_rvideo, clu_udt, cluRate, clu_uindice, dumdelta, dumLL, dumregv, 720);
+			sgdCluster(rank_u_matrix, rank_v_matrix, clu_user, clu_lvideo, clu_rvideo, clu_udt, clu_learnRate, clu_uindice, clu_grad, clu_LL, clu_regv, 720, alpha);
 		} else if(method.compare("byvideo") == 0) {
-			cluRate = learnRate;
-			sgdCluster(rank_v_matrix, rank_u_matrix, clu_video, clu_luser, clu_ruser, clu_vdt, cluRate, clu_vindice, dumdelta, dumLL, dumregv, 720);
+			sgdCluster(rank_v_matrix, rank_u_matrix, clu_video, clu_luser, clu_ruser, clu_vdt, clu_learnRate, clu_vindice, clu_grad, clu_LL, clu_regv, 720, alpha);
 		} else if(method.compare("both") == 0) {
-			double clu_urate = learnRate;
-			double clu_vrate = learnRate * 0.05;
-			sgdCluster(rank_u_matrix, rank_v_matrix, clu_user, clu_lvideo, clu_rvideo, clu_udt, clu_urate, clu_uindice, dumdelta, dumLL, dumregv, 720);
-			sgdCluster(rank_v_matrix, rank_u_matrix, clu_video, clu_luser, clu_ruser, clu_vdt, clu_vrate, clu_vindice, dumdelta, dumLL, dumregv, 720);
+//			double clu_urate = learnRate;
+//			double clu_vrate = learnRate * 0.05;
+//			sgdCluster(rank_u_matrix, rank_v_matrix, clu_user, clu_lvideo, clu_rvideo, clu_udt, clu_urate, clu_uindice, dumdelta, dumLL, dumregv, 720);
+//			sgdCluster(rank_v_matrix, rank_u_matrix, clu_video, clu_luser, clu_ruser, clu_vdt, clu_vrate, clu_vindice, dumdelta, dumLL, dumregv, 720);
 		} else if(method.compare("norm_user") == 0) {
-			cluRate = learnRate;
-			double phi = 50.;
-			sgdNormCluster(rank_u_matrix, rank_v_matrix, clu_user, clu_lvideo, clu_rvideo, clu_udt, cluRate, clu_uindice, dumdelta, dumLL, dumregv, 720, phi);
-		} else if(method.compare("bynorm_user") == 0) {
-			cluRate = learnRate;
 			double phi = 1.;
-			sgdCluster(rank_u_matrix, rank_v_matrix, clu_user, clu_lvideo, clu_rvideo, clu_udt, cluRate, clu_uindice, dumdelta, dumLL, dumregv, 720);
-			sgdNormCluster(rank_u_matrix, rank_v_matrix, clu_user, clu_lvideo, clu_rvideo, clu_udt, cluRate, clu_uindice, dumdelta, dumLL, dumregv, 720, phi);
+			sgdNormCluster(rank_u_matrix, rank_v_matrix, clu_user, clu_lvideo, clu_rvideo, clu_udt, clu_learnRate, clu_uindice, clu_grad, clu_LL, clu_regv, 720, phi, alpha);
+		} else if(method.compare("bynorm_user") == 0) {
+			double phi = 1.;
+			sgdCluster(rank_u_matrix, rank_v_matrix, clu_user, clu_lvideo, clu_rvideo, clu_udt, clu_learnRate, clu_uindice, clu_grad, clu_LL, clu_regv, 720, alpha);
+			sgdNormCluster(rank_u_matrix, rank_v_matrix, clu_user, clu_lvideo, clu_rvideo, clu_udt, clu_learnRate, clu_uindice, clu_grad, clu_LL, clu_regv, 720, phi, alpha);
 		}
 
 }
 int main() {
 
-	string dir = "/home/lin/workspace/data/youtube";
+	string dataname = "youku";
+//	string dataname = "youtube";
+	string dir = "/home/lin/workspace/data/" + dataname;
 	char sep = '\t';
 
 	// loading user and video map
@@ -251,6 +249,7 @@ int main() {
 	int numUser = user_map.size(), numVideo = video_map.size();
 
 	// global params
+	string sparsity = "80_20";
 	int dim = 45;
 	double stdev = 0.1;
 	string path;
@@ -268,13 +267,13 @@ int main() {
 	{
 		// loading ranking training data
 		std::cout << "loading ranking training data" << std::endl;
-		path = dir + "/train.dat";
+		path = dir + "/train_"+sparsity+".dat";
 		loadRank(rank_user, rank_video, rank_time, user_map, video_map, path, sep);
 		num_rank_train = rank_user.size();
 
 		// loading ranking testing data
 		std::cout << "loading ranking testing data" << std::endl;
-		path = dir + "/test.dat";
+		path = dir + "/test_"+sparsity+".dat";
 		loadTest(rank_utest, rank_vtest, user_map, video_map, path, sep);
 
 		// loading done data
@@ -305,18 +304,18 @@ int main() {
 	{
 		// loading cluster train data
 		std::cout << "loading cluster training data" << std::endl;
-		path = dir + "/cutrain.dat";
+		path = dir + "/cutrain_"+sparsity+".dat";
 		loadCluster(user_map, video_map, clu_user, clu_lvideo, clu_rvideo, clu_udt, path, sep);
 		num_cluster_utrain = clu_user.size();
 
 		// loading cluster testing data
 		std::cout << "loading cluster testing data" << std::endl;
-		path = dir + "/cutest.dat";
+		path = dir + "/cutest_"+sparsity+".dat";
 		loadCluster(user_map, video_map, clu_utest, clu_vltest, clu_vrtest, clu_dtutest, path, sep);
 
 		// loading target video
 		std::cout << "loading target video..." << std::endl;
-		path = dir + "/test.dat";
+		path = dir + "/test_.dat";
 		loadTarget(user_map, video_map, target, path);
 
 		// initialize cluster features
@@ -333,13 +332,13 @@ int main() {
 	{
 		// loading cluster train data
 		std::cout << "loading cluster training data" << std::endl;
-		path = dir + "/cvtrain.dat";
+		path = dir + "/cvtrain_"+sparsity+".dat";
 		loadCluster(user_map, video_map, clu_video, clu_luser, clu_ruser, clu_vdt, path, sep);
 		num_cluster_vtrain = clu_video.size();
 
 		// loading cluster testing data
 		std::cout << "loading cluster testing data" << std::endl;
-		path = dir + "/cvtest.dat";
+		path = dir + "/cvtest_"+sparsity+".dat";
 		loadCluster(user_map, video_map, clu_vtest, clu_ultest, clu_urtest, clu_dtvtest, path, sep);
 
 		// init random shuffling
@@ -349,90 +348,100 @@ int main() {
 	// start the training
 	std::cout << "start the ranking and clustering learning" << std::endl;
 	int numIter = 10000;
-	double learnRate = 0.05;
+	double rank_learnRate = 0.005, clu_learnRate = 0.005;
+	double alpha = 1;
 	// learning params for ranking
 	int topK = 100;
-	double rank_regw = 0.01, rank_regv = 0.01;
+	double reg = 0.02;
+	double clu_regv = 0.001;
+	stringstream reg_ss; reg_ss << reg; reg_ss << "_" << clu_regv; reg_ss << "_" << dim;
+	double rank_regw = reg, rank_regv = reg;
 	double rank_LL = 0., rank_grad = 0.;
 	// learning params for cluster
-	double clu_regv = 0.03;
+//	stringstream reg_ss;
 	double clu_LL = 0., clu_grad = 0.;
-	string method = "clu_norm_user";
+
+	string method = "sgd";
 	// convergence file
-//	string rank_to_clu = "rank_to_clu" + learnRate + "_" + rank_regv + "_" + clu_regv;
-	stringstream ss;
-	ss << "rank" << "_" << learnRate << "_" << rank_regv << "_" << clu_regv;
-//	ss << "r" << "_" << learnRate << "_" << rank_regv << "_" << clu_regv;
-	string clu_to_rank = ss.str();
 	ofstream writeFile;
-	writeFile.open(("/home/lin/Desktop/" + clu_to_rank).c_str(), ios::out);
-	writeFile << "LearnRate: " << learnRate << "\tdim: " << dim << "\trank_regw: " << rank_regw << "\trank_regv: " << rank_regv << "\tclu_regv: " << clu_regv << "\n";
+	string split = "50_50";
+	writeFile.open((dir + "/" + method + "_convergence_" + split + "_" + reg_ss.str() + ".out").c_str(), ios::out);
+	writeFile << "method: " << method << "\tLearnRate: " << rank_learnRate << "\tdim: " << dim << "\trank_regw: " << rank_regw << "\trank_regv: " << rank_regv << "\tclu_regv: " << clu_regv << "\n";
 	for(int i = 0; i < numIter; i++) {
 		std::cout << "new iter..." << std::endl;
-		writeFile << "new iter...\n";
 		if(method.compare("sgd") == 0) {
 			sgdRank(rank_indice, rank_user, rank_video, done,
 				rank_order,
 				rank_v_vector, rank_u_matrix, rank_v_matrix,
-				learnRate, rank_regw, rank_regv,
+				rank_learnRate, rank_regw, rank_regv,
 				rank_LL, rank_grad);
 
 		} else if(method.compare("clu_user") == 0) {
 			coFactor(rank_indice, rank_user, rank_video, done, rank_order, // input for rank
 					rank_v_vector, rank_u_matrix, rank_v_matrix, // params for rank_feature
-					learnRate, rank_regw, rank_regv, rank_LL, rank_grad, // params for model
+					clu_u_matrix, clu_v_matrix,
+					rank_learnRate, rank_regw, rank_regv, rank_LL, rank_grad, // params for model
+					clu_learnRate, clu_regv, clu_LL, clu_grad,
 					clu_vindice, clu_video, clu_luser, clu_ruser, clu_vdt, // input for cluster by video
 					clu_uindice, clu_user, clu_lvideo, clu_rvideo, clu_udt, // input for cluster by user
-					"byuser"
+					"byuser", alpha
 					); // input for cluster by user
 		} else if(method.compare("clu_video") == 0) {
 			coFactor(rank_indice, rank_user, rank_video, done, rank_order, // input for rank
 					rank_v_vector, rank_u_matrix, rank_v_matrix, // params for rank_feature
-					learnRate, rank_regw, rank_regv, rank_LL, rank_grad, // params for model
+					clu_u_matrix, clu_v_matrix,
+					rank_learnRate, rank_regw, rank_regv, rank_LL, rank_grad, // params for model
+					clu_learnRate, clu_regv, clu_LL, clu_grad,
 					clu_vindice, clu_video, clu_luser, clu_ruser, clu_vdt, // input for cluster by video
 					clu_uindice, clu_user, clu_lvideo, clu_rvideo, clu_udt, // input for cluster by user
-					"byvideo"
+					"byvideo", alpha
 					); // input for cluster by user
 		} else if(method.compare("clu_both") == 0) {
 			coFactor(rank_indice, rank_user, rank_video, done, rank_order, // input for rank			coFactor(rank_indice, rank_user, rank_video, done, rank_order, // input for rank
 					rank_v_vector, rank_u_matrix, rank_v_matrix, // params for rank_feature
-					learnRate, rank_regw, rank_regv, rank_LL, rank_grad, // params for model
+					clu_u_matrix, clu_v_matrix,
+					rank_learnRate, rank_regw, rank_regv, rank_LL, rank_grad, // params for model
+					clu_learnRate, clu_regv, clu_LL, clu_grad,
 					clu_vindice, clu_video, clu_luser, clu_ruser, clu_vdt, // input for cluster by video
 					clu_uindice, clu_user, clu_lvideo, clu_rvideo, clu_udt, // input for cluster by user
-					"norm_user"
+					"norm_user", alpha
 					); // input for cluster by user
 		} else if (method.compare("clu_norm_user") == 0) {
 			coFactor(rank_indice, rank_user, rank_video, done, rank_order, // input for rank
 					rank_v_vector, rank_u_matrix, rank_v_matrix, // params for rank_feature
-					learnRate, rank_regw, rank_regv, rank_LL, rank_grad, // params for model
+					clu_u_matrix, clu_v_matrix,
+					rank_learnRate, rank_regw, rank_regv, rank_LL, rank_grad, // params for model
+					clu_learnRate, clu_regv, clu_LL, clu_grad,
 					clu_vindice, clu_video, clu_luser, clu_ruser, clu_vdt, // input for cluster by video
 					clu_uindice, clu_user, clu_lvideo, clu_rvideo, clu_udt, // input for cluster by user
-					"norm_user"
+					"norm_user", alpha
 					); // input for cluster by user
 		} else if(method.compare("clu_bynorm_user") == 0) {
 			coFactor(rank_indice, rank_user, rank_video, done, rank_order, // input for rank
 					rank_v_vector, rank_u_matrix, rank_v_matrix, // params for rank_feature
-					learnRate, rank_regw, rank_regv, rank_LL, rank_grad, // params for model
+					clu_u_matrix, clu_v_matrix,
+					rank_learnRate, rank_regw, rank_regv, rank_LL, rank_grad, // params for model
+					clu_learnRate, clu_regv, clu_LL, clu_grad,
 					clu_vindice, clu_video, clu_luser, clu_ruser, clu_vdt, // input for cluster by video
 					clu_uindice, clu_user, clu_lvideo, clu_rvideo, clu_udt, // input for cluster by user
-					"bynorm_user"
+					"bynorm_user", alpha
 					); // input for cluster by user
 		}
 
 		// learning for ranking
-		double prec = 0., trainHit = 0., hit = 0., testAll = 0., rankscore = 0.;
+		double prec = 0., recall = 0., mean_ap = 0., trainHit = 0., hit = 0., testAll = 0., rankscore = 0.;
 		bool toFile = false;
-		if((i+1) % 50 == 0) {
-			evaluateRank(rank_utest, rank_vtest, done, rank_v_vector, rank_u_matrix, rank_v_matrix, topK, prec, trainHit, hit, testAll, rankscore, map_video, map_user, dir+"/block", toFile);
+		if((i+1) % 1 == 0) {
+			evaluateRank(rank_utest, rank_vtest, done, rank_v_vector, rank_u_matrix, rank_v_matrix, topK, prec, recall, mean_ap, trainHit, hit, testAll, rankscore, map_video, map_user, dir+"/block", toFile);
 			toFile = false;
-			cout << method << "\titerNum: " << i << "\tLL: " << rank_LL << "\tdelta: " << rank_grad << "\tprec: " << prec << "\ttrainHit: " << trainHit << "\ttestHit: " << hit
-					<< "\ttestAll: " << testAll << "\trankscore: " << rankscore << endl;
-			writeFile << "iterNum: " << i << "\tLL: " << rank_LL << "\tdelta: " << rank_grad << "\tprec: " << prec << "\ttrainHit: " << trainHit << "\ttestHit: " << hit
-					<< "\ttestAll: " << testAll << "\trankscore: " << rankscore << "\n";
+//			cout << method << "\titerNum: " << i << "\trank_LL: " << rank_LL << "\trank_delta: " << rank_grad << "\tclu_LL: " << clu_LL << "\tclu_delta: " << clu_grad << "\tprec: " << prec << "\ttrainHit: " << trainHit << "\ttestHit: " << hit
+//					<< "\ttestAll: " << testAll << "\trankscore: " << rankscore << endl;
+			writeFile << i << "\t" << rank_LL << "\t" << prec << "\t" << recall << "\t" << mean_ap << "\t" << rank_grad << '\t' << clu_grad << "\t" << hit << "\t" << rankscore << "\n";
 		} else {
-			cout << method << "\titerNum: " << i << "\tLL: " << rank_LL << "\tdelta: " << rank_grad << endl;
-			writeFile << "iterNum: " << i << "\tLL: " << rank_LL << "\tdelta: " << rank_grad << "\n";
+//			cout << method << "\titerNum: " << i << "\trank_LL: " << rank_LL << "\trank_delta: " << rank_grad  << "\tclu_LL: " << clu_LL << "\tclu_delta: " << clu_grad << endl;
+//			writeFile << i << "\t" << rank_LL << "\n";
 		}
+		writeFile.flush();
 
 
 
