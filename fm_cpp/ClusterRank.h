@@ -348,25 +348,27 @@ int main() {
 	// start the training
 	std::cout << "start the ranking and clustering learning" << std::endl;
 	int numIter = 10000;
-	double rank_learnRate = 0.005, clu_learnRate = 0.005;
+	double rank_learnRate = 0.001, clu_learnRate = 0.005;
 	double alpha = 1;
 	// learning params for ranking
-	int topK = 100;
-	double reg = 0.02;
+	int topK = 15;
+	double reg = 0.04;
 	double clu_regv = 0.001;
-	stringstream reg_ss; reg_ss << reg; reg_ss << "_" << clu_regv; reg_ss << "_" << dim;
 	double rank_regw = reg, rank_regv = reg;
 	double rank_LL = 0., rank_grad = 0.;
 	// learning params for cluster
 //	stringstream reg_ss;
 	double clu_LL = 0., clu_grad = 0.;
 
-	string method = "sgd";
+	string method = "clu_user";
 	// convergence file
-	ofstream writeFile;
-	string split = "50_50";
-	writeFile.open((dir + "/" + method + "_convergence_" + split + "_" + reg_ss.str() + ".out").c_str(), ios::out);
-	writeFile << "method: " << method << "\tLearnRate: " << rank_learnRate << "\tdim: " << dim << "\trank_regw: " << rank_regw << "\trank_regv: " << rank_regv << "\tclu_regv: " << clu_regv << "\n";
+	vector<ofstream> writeFiles(topK/5);
+	string split = "80_20";
+	for(int i = 0; i < topK/5; i++) {
+		stringstream reg_ss; reg_ss << "_rankreg" << reg; reg_ss << "_clureg" << clu_regv; reg_ss << "_dim" << dim << "_learnRate" << rank_learnRate << "_top" << (5*(i+1));
+		writeFiles[i].open((dir + "/" + method + "_convergence_" + split + reg_ss.str() + ".out").c_str(), ios::out);
+		writeFiles[i] << "method: " << method << "\tLearnRate: " << rank_learnRate << "\tdim: " << dim << "\trank_regw: " << rank_regw << "\trank_regv: " << rank_regv << "\tclu_regv: " << clu_regv << "\n";
+	}
 	for(int i = 0; i < numIter; i++) {
 		std::cout << "new iter..." << std::endl;
 		if(method.compare("sgd") == 0) {
@@ -429,19 +431,23 @@ int main() {
 		}
 
 		// learning for ranking
-		double prec = 0., recall = 0., mean_ap = 0., trainHit = 0., hit = 0., testAll = 0., rankscore = 0.;
+		dvec prec(topK/5), recall(topK/5), mean_ap(topK/5), rankscore(topK/5);
 		bool toFile = false;
-		if((i+1) % 1 == 0) {
-			evaluateRank(rank_utest, rank_vtest, done, rank_v_vector, rank_u_matrix, rank_v_matrix, topK, prec, recall, mean_ap, trainHit, hit, testAll, rankscore, map_video, map_user, dir+"/block", toFile);
+		if(i >= 1 && (i+1) % 1 == 0) {
+			evaluateRank(rank_utest, rank_vtest, done, rank_v_vector, rank_u_matrix, rank_v_matrix, topK, prec, recall, mean_ap, rankscore, map_video, map_user, dir+"/block", toFile);
 			toFile = false;
 //			cout << method << "\titerNum: " << i << "\trank_LL: " << rank_LL << "\trank_delta: " << rank_grad << "\tclu_LL: " << clu_LL << "\tclu_delta: " << clu_grad << "\tprec: " << prec << "\ttrainHit: " << trainHit << "\ttestHit: " << hit
 //					<< "\ttestAll: " << testAll << "\trankscore: " << rankscore << endl;
-			writeFile << i << "\t" << rank_LL << "\t" << prec << "\t" << recall << "\t" << mean_ap << "\t" << rank_grad << '\t' << clu_grad << "\t" << hit << "\t" << rankscore << "\n";
+			for(int j = 0; j < topK/5; j++) {
+				writeFiles[j] << i << "\t" << rank_LL << "\t" << prec[j] << "\t" << recall[j] << "\t" << mean_ap[j] << "\t" << rank_grad << '\t' << clu_grad << "\t" << rankscore[j] << "\n";
+			}
 		} else {
 //			cout << method << "\titerNum: " << i << "\trank_LL: " << rank_LL << "\trank_delta: " << rank_grad  << "\tclu_LL: " << clu_LL << "\tclu_delta: " << clu_grad << endl;
 //			writeFile << i << "\t" << rank_LL << "\n";
 		}
-		writeFile.flush();
+		for(int i = 0; i < topK/5; i++) {
+			writeFiles[i].flush();
+		}
 
 
 
