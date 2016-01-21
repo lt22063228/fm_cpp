@@ -235,8 +235,8 @@ void coFactor(ivec &rank_indice, ivec &rank_user, ivec &rank_video, map<int,ivec
 }
 int main() {
 
-	string dataname = "youku";
-//	string dataname = "youtube";
+//	string dataname = "youku";
+	string dataname = "youtube";
 	string dir = "/home/lin/workspace/data/" + dataname;
 	char sep = '\t';
 
@@ -348,12 +348,12 @@ int main() {
 	// start the training
 	std::cout << "start the ranking and clustering learning" << std::endl;
 	int numIter = 10000;
-	double rank_learnRate = 0.001, clu_learnRate = 0.005;
+	double rank_learnRate = 0.01, clu_learnRate = 0.01;
 	double alpha = 1;
 	// learning params for ranking
 	int topK = 15;
-	double reg = 0.04;
-	double clu_regv = 0.001;
+	double reg = 0.02;
+	double clu_regv = 0.005;
 	double rank_regw = reg, rank_regv = reg;
 	double rank_LL = 0., rank_grad = 0.;
 	// learning params for cluster
@@ -433,7 +433,7 @@ int main() {
 		// learning for ranking
 		dvec prec(topK/5), recall(topK/5), mean_ap(topK/5), rankscore(topK/5);
 		bool toFile = false;
-		if(i >= 1 && (i+1) % 1 == 0) {
+		if(i >= 2000 && (i+1) % 1 == 0) {
 			evaluateRank(rank_utest, rank_vtest, done, rank_v_vector, rank_u_matrix, rank_v_matrix, topK, prec, recall, mean_ap, rankscore, map_video, map_user, dir+"/block", toFile);
 			toFile = false;
 //			cout << method << "\titerNum: " << i << "\trank_LL: " << rank_LL << "\trank_delta: " << rank_grad << "\tclu_LL: " << clu_LL << "\tclu_delta: " << clu_grad << "\tprec: " << prec << "\ttrainHit: " << trainHit << "\ttestHit: " << hit
