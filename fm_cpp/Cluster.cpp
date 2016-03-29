@@ -69,6 +69,20 @@ void loadCluster(simap &user_map, simap &video_map, ivec &key, ivec &left, ivec 
 		clu_dt.push_back(dt);
 	}
 }
+void loadCorder(ivec &user, ivec &video, map<int,ivec> &done, ivec &clu_order) {
+	for(int i = 0; i < user.size(); i++) {
+		int u = user[i];
+		int v = video[i];
+		int rank = 0;
+		for(int j = 0; j < done[u].size(); j++) {
+			if(done[u][j] == v) {
+				rank = j+1;
+				break;
+			}
+		}
+		clu_order.push_back(rank);
+	}
+}
 void sgdNormCluster(ddvec &midMatrix, ddvec &sideMatrix, ivec &mid, ivec &left, ivec &right, ivec &clu_dt,
 		double learnRate, ivec &indice, double &delta, double &LL, double regv, int scale, double phi, double alpha) {
 	int numTrain = mid.size();
@@ -215,7 +229,7 @@ void sgdNormCluster(ddvec &midMatrix, ddvec &sideMatrix, ivec &mid, ivec &left, 
 	delta /= numTrain;
 }
 void sgdCluster(ddvec &midMatrix, ddvec &sideMatrix, ivec &mid, ivec &left, ivec &right, ivec &clu_dt,
-		double learnRate, ivec &indice, double &delta, double &LL, double regv, int scale, double alpha) {
+		double learnRate, ivec &indice, double &delta, double &LL, double regv, int scale, double alpha, ivec &clu_order) {
 	int numTrain = mid.size();
 	int dim = midMatrix[0].size();
 	int numVideo = sideMatrix.size();
@@ -228,6 +242,7 @@ void sgdCluster(ddvec &midMatrix, ddvec &sideMatrix, ivec &mid, ivec &left, ivec
 
 		int idx = indice[i];
 		int u = mid[idx], vl = left[idx], vr = right[idx], dt = clu_dt[idx];
+		double ord = clu_order[idx];
 
 		int randv = ran_range(numVideo);
 
@@ -243,6 +258,7 @@ void sgdCluster(ddvec &midMatrix, ddvec &sideMatrix, ivec &mid, ivec &left, ivec
 
 		dt = 1 + dt/scale;
 		double disc = 1./dt;
+//		learnRate *= 1./ord;
 		disc = 1.;
 		// user update
 		for(int f = 0; f < dim; f++) {

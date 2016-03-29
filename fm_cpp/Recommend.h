@@ -9,6 +9,8 @@
 #define RECOMMEND_H_
 #include "Util.h"
 #include "Cluster.h"
+#include "string"
+
 
 namespace primer {
 
@@ -38,7 +40,7 @@ void topping(ivec &tops, std::vector<size_t> &rank, std::map<int, ivec> done,
 			int u, int topK, double &trainHit);
 void evaluateRank(ivec &utest, ivec &vtest, std::map<int, ivec> &done,
 		dvec videoVector, ddvec userMatrix, ddvec videoMatrix,
-		int topK, dvec &prec, dvec &recall, dvec &mean_ap, dvec &rankscore, ismap& map_video, ismap &map_user, std::string dir, bool toFile);
+		int topK, dvec &prec, dvec &recall, dvec &mean_ap, dvec &rankscore, ismap& map_video, ismap &map_user, std::string dir, bool toFile, std::string method);
 void loadRank(ivec &user, ivec &video, lvec &time, simap &user_map, simap &video_map, std::string datpath, char sep);
 void loadTest(ivec &utest, ivec &vtest, simap &user_map, simap &video_map, std::string datpath, char sep);
 void initVector(dvec &videoVector, int numVideo);

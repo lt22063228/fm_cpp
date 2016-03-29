@@ -21,8 +21,9 @@ public:
 } /* namespace primer */
 void loadMap(simap &user_map, ismap &map_user, simap &video_map, ismap &map_video, std::string userpath, std::string videopath, char sep);
 void loadCluster(simap &user_map, simap &video_map, ivec &key, ivec &left, ivec &right, ivec &clu_dt, std::string path, char sep);
+void loadCorder(ivec &user, ivec &video, std::map<int,ivec> &done, ivec &clu_order);
 void sgdCluster(ddvec &midMatrix, ddvec &sideMatrix, ivec &key, ivec &left, ivec &right, ivec &clu_dt,
-		double learnRate, ivec &indice, double &delta, double &LL, double regv, int scale, double alpha);
+		double learnRate, ivec &indice, double &delta, double &LL, double regv, int scale, double alpha, ivec &rank_order);
 void sgdNormCluster(ddvec &midMatrix, ddvec &sideMatrix, ivec &mid, ivec &left, ivec &right, ivec &clu_dt,
 		double learnRate, ivec &indice, double &delta, double &LL, double regv, int scale, double phi, double alpha);
 void loadTarget(simap &user_map, simap &video_map, std::map<int, ivec > &target, std::string path);
