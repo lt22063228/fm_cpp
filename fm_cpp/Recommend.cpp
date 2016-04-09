@@ -112,11 +112,16 @@ void sgdRank(const ivec &indice, const ivec &user, const ivec &video, map<int, i
 
 		double g = 0.;
 
-		double disc = 1./ord;
+		double disc = 1.;
+//		double disc = 1./(ord * ord);
+//		double disc = 1./ord;
+//		double disc = 1./sqrt(ord);
+//		double disc = 1./sqrt(sqrt(ord));
 //		disc *= disc;
 //		learnRate *= discount;
 //		learnRate *= disc;
-		learnRate *= disc * discount;
+		learnRate *= disc *discount;
+
 		// unary postive
 		g = normalizer - 2 * regw * videoVector[vp];
 		vp_scalar = videoVector[vp] + learnRate * g;

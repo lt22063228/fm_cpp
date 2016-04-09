@@ -348,7 +348,7 @@ int main() {
 
 	// start the training
 	std::cout << "start the ranking and clustering learning" << std::endl;
-	int numIter = 20000;
+	int numIter = 10000;
 	double rank_learnRate = 0.0001, clu_learnRate = 0.0001;
 	double alpha = 1;
 	// learning params for ranking
@@ -361,14 +361,16 @@ int main() {
 //	stringstream reg_ss;
 	double clu_LL = 0., clu_grad = 0.;
 
-	string method = "clu_user";
+	string method = "sgd";
 	// convergence file
 	vector<ofstream> writeFiles(topK/5);
 	string split = "80_20";
 //	string tmp = "tmp";
 //	string tmp = "disc";
 //	string tmp = "avg";
-	string tmp = "only";
+	string tmp = "disc";
+
+
 	for(int i = 0; i < topK/5; i++) {
 		stringstream reg_ss; reg_ss << "_rankreg" << reg; reg_ss << "_clureg" << clu_regv; reg_ss << "_dim" << dim << "_learnRate" << rank_learnRate << "_clearnRate" << clu_learnRate << "_top" << (5*(i+1));
 		writeFiles[i].open((dir + "/" + tmp + method + "_convergence_" + split + reg_ss.str() + ".out").c_str(), ios::out);
