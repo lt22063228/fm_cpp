@@ -38,6 +38,39 @@
 关注重点不在于具体的传输模型，以及节点的移动特性．本文假设任何视频都能够在ad hoc
 网络中完成视频传输，关注缓存命中率的提升．
 
+[8] Y. Li, E. Soljanin, and P. Spasojevi ́c, “Three schemes for wireless coded
+broadcast to heterogeneous users,” Phys. Commun., vol. 6, pp. 114–123,
+Mar. 2013.
+[9] S. Jakubczak and D. Katabi, “Softcast: One-size-fits-all wireless video,”
+in Proc. ACM SIGCOMM Comput. Commun. Rev., 2010, vol. 40,
+pp. 449–450.
+[10] S. Aditya and S. Katti, “Flexcast: Graceful wireless video streaming,” in
+Proc. 17th Annu. Int. Conf. Mobile Comput. Netw., 2011, pp. 277–288.
+[11] O. Y. Bursalioglu, M. Fresia, G. Caire, and H. V. Poor, “Lossy multi-
+casting over binary symmetric broadcast channels,” IEEE Trans. Signal
+Process., vol. 59, no. 8, pp. 3915–3929, Aug. 2011
+[12] T. M. Cover and J. A. Thomas, Elements of Information Theory, 2nd ed.
+New York, NY, USA: Wiley-interscience, 2006.
+[16] L. Keller et al., “Microcast: Cooperative video streaming on smart-
+phones,” in Proc. ACM MobiSys, 2012, pp. 57–70.
+[21] K. Shanmugam, N. Golrezaei, A. G. Dimakis, A. F. Molisch, and G. Caire,
+“Femtocaching: Wireless content delivery through distributed caching
+helpers,” IEEE Trans. Inf. Theory, vol. 59, no. 12, pp. 8402–8413,
+Dec. 2013.
+[22] M. Ji, G. Caire, and A. F. Molisch, “Optimal throughput-outage trade-off
+in wireless one-hop caching networks,” to be published, arXiv
+preprint:1302.2168.
+[23] S. Gitzenis, G. S. Paschos, and L. Tassiulas, “Asymptotic laws for joint
+content replication and delivery in wireless networks,” IEEE Trans. Inf.
+Theory, vol. 59, no. 5, pp. 2760–2776, May 2013.
+[24] N. Golrezaei, A. G. Dimakis, and A. F. Molisch, “Scaling behavior for
+device-to-device communications with distributed caching,” IEEE Trans.
+Inf. Theory, vol. 60, no. 7, pp. 4286–4298, Jul. 2014.
+[25] M. A. Maddah-Ali and U. Niesen, “Fundamental limits of caching,” IEEE
+Trans. Inf. Theory, vol. 60, no. 5, pp. 2856–2867, May 2014.
+
+
+
 个性化推荐系统
 
 归功于计算机与计算机网络，我们的社会正经受着各方面的转型．我们在网上购物，使用搜索
@@ -62,12 +95,38 @@
 着我们的购买记录以推荐其他商品来提高销售量;社交网站分析我们的联系人以帮我们找到
 新的朋友并使我们在网站上逗留更久；在线广播记下我们跳过的歌曲以更好地为我们服务(更多例子如表1)．
 << 表1 >>
+table 1: popular sites using recommender system
+site               what is recommended
+
+Amazon Books/other products
+Facebook Friends
+WeFollow Friends
+MovieLens Movies
+Nanocrowd Movies
+Jinni Movies
+Findory News
+Digg News
+Zite News
+Meehive News
+Netflix DVDs
+CDNOW CDs/DVDs
+eHarmony Dates
+Chemistry Dates
+True.com Dates
+Perfectmatch Dates
+CareerBuilder Jobs
+Monster Jobs
+Pandora Music
+Mufin Music
+StumbleUpon Web sites
 一般而言，只要存在大量不同的商品和不同的用户，个性化推荐总能帮助我们将正确的内容
 推荐给正确的人．推荐对在线网店更为重要，这些公司想利用商品的＂长尾效应＂[16]来提高利益．
 例如，在亚马逊，20%到40%的产品销售量是来源于不属于前100,000的热销产品[17].因此，推荐
 系统对公司的利益有巨大的影响：例如，Netflix中有60%的DVD出租是基于对用户的个性化
 推荐而来．
-
+[16] C. Anderson, The Long Tail: Why the Future of Business is Selling Less of More, Hyperion, 2006.
+[17] E. Brynjolfsson, Y. Hu, M.D. Smith, Consumer surplus in the digital economy: estimating the value of increased product variety at online booksellers,
+Management Science 49 (2003) 1580–1596.
 个性化推荐技术
 
 推荐技术在本质上没有优劣之分，随着研究的深入，有更多的推荐技术被发现，使人们面对
@@ -106,7 +165,12 @@ K个隐含因子，那么隐含特征响亮就是K维，那么如果$K(N+M) < NM
 有效地减少了推荐的计算复杂度和内存开销，同时保留了有用的信息．一些有名的维度下降
 方法包括奇异值分解(SVD)[172],贝叶斯聚类[173],概率型隐语义分析(pLSA)[174],隐含
 狄利克雷分布(LDA)[175].
-
+[172] G. Takács, I. Pilászy, B. Németh, D. Tikk, On the gravity recommendation system, In: Proceedings of KDD Cup Workshop at SIGKDD’07, 13th ACM
+International Conference on Knowledge Discovery and Data Mining, San Jose, CA, USA, 2007, pp. 22–30.
+[173] L. Ungar, D. Foster, A formal statistical approach to collaborative filtering, In: Proceedings of the Conference of Automated Learning and Discovery,
+Pittsburg, PA, USA, 1998.
+[174] T. Hofmann, Latent semantic models for collaborative filtering, ACM Transactions on Information Systems 22 (2004) 89–115.
+[175] D.L. Blei, A.Y. Ng, M.I. Jordan, Latent Dirichlet allocation, The Journal of Machine Learning Research 3 (2003) 993–1022.
 
 奇异值分解(SVD)
 
@@ -153,7 +217,9 @@ SVD也被称为矩阵分解方法(MF).
 << 公式 65 >>
 
 基于梯度下降的类似推导可以应用到上面，得到最后的解．
-
+[182] Y. Koren, R. Bell, C. Volinsky, Matrix factorization techniques for recommender systems, Computer 42 (2009) 30–37.
+[183] H. Ma, D. Zhou, C. Liu, M.R. Lyu, I. King, Recommender systems with social regularization, in: Proceedings of the 4th ACM International Conference
+on Web Search and Data Mining, ACM Press, New York, 2011, pp. 287–296.
 
 贝叶斯聚类
 
@@ -209,6 +275,15 @@ Twitter上追踪实时热点事件，订阅和观看YouTube上的流行视频，
 
 << 热度图 >>
 
+[2] James Davidson, Benjamin Liebald, Junning Liu, Palash
+Nandy, Taylor Van Vleet, Ullas Gargi, Sujoy Gupta, Yu He,
+Mike Lambert, et al. The youtube video recommendation
+system. In Proceedings of the fourth ACM conference on
+Recommender systems, pages 293–296. ACM, 2010.
+[3] Francesco Ricci, Lior Rokach, and Bracha Shapira.
+Recommender Systems Handbook: A Complete Guide for
+Scientists and Practioners. Springer, 2011.
+
 为了验证跨网络学习的可能性，[XXX]收集了$137317$个用户的Google+账号．Google+鼓励用户
 在账户信息分享其他的网站信息，作者进一步得到了对应的YouTube,Twitter,Facebook以及
 Flickr的信息，发现大部分用户都在多个网站上同时拥有账户，如表[XXX]和表[XXX].为了验证
@@ -220,6 +295,8 @@ Flickr的信息，发现大部分用户都在多个网站上同时拥有账户�
 ２．对于只有少量视频相关活动的用户，如在x轴上$10^0-10^1$的区域，可见的twitter活动
 情况在范围$10^2-10^5$内变化．这说明在YouTube上的冷启动和数据稀疏问题可以借助Twitter
 上的辅助用户数据来解决.
+
+[unif] Unified YouTube Video
 
 << 表１　>>
 <<　表２ >>
@@ -241,7 +318,20 @@ YouTube中的视频应用．在[16]中，维基页面中的权威信息被用来
 平衡和对齐是一个问题．
 总而言之，关键点在于保留数据的目标共性而排除数据间的本质差异性．
 
-
+[13] Fabian Abel, Samur Ara´ujo, Qi Gao, and Geert-Jan Houben.
+Analyzing cross-system user modeling on the social web. In
+Web Engineering, pages 28–43. Springer, 2011.
+[14] Zhengyu Deng, Jitao Sang, and Changsheng Xu. Personalized
+video recommendation based on cross-platform user modeling.
+In ICME 2013, pages 1–6. IEEE.
+[15] Suman Deb Roy, Tao Mei, Wenjun Zeng, and Shipeng Li.
+Socialtransfer: cross-domain transfer learning from social
+streams for media applications. In ACM Multimedia 2012,
+pages 649–658. ACM.
+[16] Miles Osborne, Saˇsa Petrovic, Richard McCreadie, Craig
+Macdonald, and Iadh Ounis. Bieber no more: First story
+detection using twitter and wikipedia. In TAIA 2012,
+volume 12.
 
 
 
