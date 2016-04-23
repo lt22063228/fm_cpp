@@ -6,6 +6,7 @@
  */
 
 #include "Recommend.h"
+#include <chrono>
 
 namespace primer {
 
@@ -85,6 +86,7 @@ void sgdRank(const ivec &indice, const ivec &user, const ivec &video, map<int, i
 		dvec &videoVector, ddvec &userMatrix, ddvec &videoMatrix,
 		double learnRate, double regw, double regv,
 		double &LL, double &tmpdelt) {
+	
 	int dim = userMatrix[0].size();
 
 
@@ -95,9 +97,11 @@ void sgdRank(const ivec &indice, const ivec &user, const ivec &video, map<int, i
 		double delta = 0.;
 		int cnt = 0;
 		int idx = indice[i];
-		int u = user[idx], vp = video[idx]; int ord = order[idx];
+		int u = user[idx], vp = video[idx];
+//		double ord = sqrt(sqrt(order[idx]));
+		double ord = order[idx];
 		int vn = getNegative(done[u], videoVector.size());
-		double dicount = 1./done[u].size();
+		double discount = 1./done[u].size();
 //		double tmplr = learnRate;
 //		learnRate *= dicount;
 //		std::cout << "start..." << std::endl;
@@ -107,6 +111,16 @@ void sgdRank(const ivec &indice, const ivec &user, const ivec &video, map<int, i
 		double normalizer = (1-logistic(tmpscore));
 
 		double g = 0.;
+
+		double disc = 1.;
+//		double disc = 1./(ord * ord);
+//		double disc = 1./ord;
+//		double disc = 1./sqrt(ord);
+//		double disc = 1./sqrt(sqrt(ord));
+//		disc *= disc;
+//		learnRate *= discount;
+//		learnRate *= disc;
+		learnRate *= disc *discount;
 
 		// unary postive
 		g = normalizer - 2 * regw * videoVector[vp];
@@ -120,7 +134,6 @@ void sgdRank(const ivec &indice, const ivec &user, const ivec &video, map<int, i
 		delta += abs(g);
 		cnt ++;
 
-		double disc = 1./ord;
 		// user
 		for(int d = 0; d < dim; d++) {
 			g = normalizer * (videoMatrix[vp][d] - videoMatrix[vn][d]);
@@ -175,7 +188,8 @@ void sgdRank(const ivec &indice, const ivec &user, const ivec &video, map<int, i
 
 
 void scoring(dvec &scores, int dim, int u,
-		const dvec &videoVector, const ddvec &userMatrix, const ddvec &videoMatrix, map<int,ivec> done) {
+		const dvec &videoVector, const ddvec &userMatrix, const ddvec &videoMatrix, map<int,ivec> &done) {
+	long start =  chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now().time_since_epoch()).count();
 	for(int v = 0; v < videoVector.size(); v++) {
 		double score = videoVector[v];
 //		double score = 0.;
@@ -203,11 +217,10 @@ void topping(ivec &tops, vector<size_t> &rank, map<int, ivec> done,
 	}
 
 }
-
 void evaluateRank(ivec &utest, ivec &vtest, map<int, ivec> &done,
 		dvec videoVector, ddvec userMatrix, ddvec videoMatrix,
-		int topK, double &prec, double &recall, double &mean_ap, double &trainHit, double &testHit, double &testAll, double &rankscore,
-		ismap &video_map, ismap &user_map, string dir, bool toFile) {
+		int topK, dvec &prec, dvec &recall, dvec &mean_ap, dvec &rankscore,
+		ismap &video_map, ismap &user_map, string dir, bool toFile, string method) {
 
 	// get ground truth for each user
 	int dim = userMatrix[0].size();
@@ -221,58 +234,160 @@ void evaluateRank(ivec &utest, ivec &vtest, map<int, ivec> &done,
 		test[u].push_back(v);
 	}
 
+
+
+	ofstream file;
+	if(toFile)
+		file.open((dir + "/../" + method + ".lst").c_str(), ios::out);
+	// make sure statics return is initialized to 0
+	for(int i = 0; i < topK/5; i++) {
+		prec[i] = 0.; recall[i] = 0.; mean_ap[i] = 0.; rankscore[i] = 0.;
+	}
 	// get precision for each user
-	testAll = 0.; rankscore = 0.;
-	prec = 0.; trainHit = 0.; testHit = 0.;
-	set<string> vs;
-	set<string> us;
 	double ill = 0.;
 	for(int u = 0; u < done.size(); u++) {
 
-
 		// compute score for each video
 		dvec scores;
-		scoring(scores, dim, u, videoVector, userMatrix, videoMatrix, done);
 
-		int magic = 10;
+
+		scoring(scores, dim, u, videoVector, userMatrix, videoMatrix, done);
 		// rank the video and got topK
-		vector<int> tops = sort_indexes(scores, magic, u);
-//		topping(tops, rank, done, u, topK, trainHit);
+//		vector<size_t> arank = sort_indexes(scores);
+		using namespace std::chrono;
+		ivec rank = sort_indexes(scores, topK, u);
+
+		if(toFile) {
+			file << u << ":";
+			for(int i = 0; i < rank.size(); i++) file << "\t" << rank[i];
+			file << "\n";
+		}
 
 
 		// calculate precision
-		double all = 0., hit = 0.;
-		double ap = 0.;
+		dvec alls(topK/5), hits(topK/5), aps(topK/5);
+		double all = 0., hit = 0., ap = 0., rs = 0.;
 		double recall_denom = test[u].size();
-		for(int r = 0; r < magic; r++) {
+		for(int r = 0; r < recall_denom && r < topK; r++) {
 			all += 1.;
-			testAll += 1.;
-			if(std::find(test[u].begin(), test[u].end(), tops[r]) != test[u].end()) {
+			if(std::find(test[u].begin(), test[u].end(), rank[r]) != test[u].end()) {
 				hit += 1.;
-				rankscore += 1./(1+r);
-				testHit += 1;
-				vs.insert(video_map[tops[r]]);
+				rs += 1./(1+r);
 				ap += hit/all;
 			}
+			for(int i = 0; i < topK/5; i++) {
+				if(r == ((i+1)*5-1)) {
+					hits[i] = hit;
+					aps[i] = ap;
+					alls[i] = all;
+					rankscore[i] += rs;
+				}
+			}
 		}
+//		cout << "result" << endl;
+		for(int i = 0; all != 0 && i < topK/5; i++) {
+			double trecall = 0., tprec = 0., tmean_ap = 0.;
+			if(alls[i] != 0) {
+				recall[i] += hits[i]/recall_denom;
+				trecall = hits[i]/recall_denom;
+				prec[i] += hits[i]/alls[i];
+				tprec = hits[i]/alls[i];
+				mean_ap[i] += aps[i]/alls[i];
+				tmean_ap = aps[i]/alls[i];
+			} else {
+				recall[i] += hit / recall_denom;
+				trecall = hit/recall_denom;
+				prec[i] += hit / all;
+				tprec = hit/all;
+				mean_ap[i] += ap / all;
+				tmean_ap = ap/all;
+				rankscore[i] += rs;
+			}
+		}
+		if(all == 0) ill++;
 
-		if(all != 0) {
-			recall += hit/recall_denom;
-			prec += hit/all;
-			mean_ap += ap/all;
-		} else {
-			ill += 1.;
-		}
 	}
-	prec /= (done.size()-ill);
-	recall /= (done.size()-ill);
-	mean_ap /= (done.size()-ill);
-	cout << "vl size: " << vs.size() << endl;
-//	for(set<string>::iterator iter = vs.begin(); iter != vs.end(); iter ++) cout << *iter << endl;
-//	prec = testHit/testAll;
+	if(toFile) file.flush();
 
-	//
+	for(int i = 0; i < topK/5; i++) {
+		prec[i] /= (done.size()-ill);
+		recall[i] /= (done.size()-ill);
+		mean_ap[i] /= (done.size()-ill);
+
+	}
+
+
 }
+
+//void evaluateRank(ivec &utest, ivec &vtest, map<int, ivec> &done,
+//		dvec videoVector, ddvec userMatrix, ddvec videoMatrix,
+//		int topK, double &prec, double &recall, double &mean_ap, double &trainHit, double &testHit, double &testAll, double &rankscore,
+//		ismap &video_map, ismap &user_map, string dir, bool toFile) {
+//
+//	// get ground truth for each user
+//	int dim = userMatrix[0].size();
+//	int numTest = utest.size();
+//	map<int, ivec> test;
+//	for(int i = 0; i < numTest; i++) {
+//		int u = utest[i], v = vtest[i];
+//		if(test.find(u) == test.end()) {
+//			test.insert(std::pair<int, ivec>(u, ivec()));
+//		}
+//		test[u].push_back(v);
+//	}
+//
+//	// get precision for each user
+//	testAll = 0.; rankscore = 0.;
+//	prec = 0.; trainHit = 0.; testHit = 0.;
+//	set<string> vs;
+//	set<string> us;
+//	double ill = 0.;
+//	for(int u = 0; u < done.size(); u++) {
+//
+//
+//		// compute score for each video
+//		dvec scores;
+//		scoring(scores, dim, u, videoVector, userMatrix, videoMatrix, done);
+//
+//		int magic = 10;
+//		// rank the video and got topK
+//		vector<int> tops = sort_indexes(scores, magic, u);
+////		topping(tops, rank, done, u, topK, trainHit);
+//
+//
+//		// calculate precision
+//		double all = 0., hit = 0.;
+//		double ap = 0.;
+//		double recall_denom = test[u].size();
+//		for(int r = 0; r < magic; r++) {
+//			all += 1.;
+//			testAll += 1.;
+//			if(std::find(test[u].begin(), test[u].end(), tops[r]) != test[u].end()) {
+//				hit += 1.;
+//				rankscore += 1./(1+r);
+//				testHit += 1;
+//				vs.insert(video_map[tops[r]]);
+//				ap += hit/all;
+//			}
+//		}
+//
+//		if(all != 0) {
+//			recall += hit/recall_denom;
+//			prec += hit/all;
+//			mean_ap += ap/all;
+//		} else {
+//			ill += 1.;
+//		}
+//	}
+//	prec /= (done.size()-ill);
+//	recall /= (done.size()-ill);
+//	mean_ap /= (done.size()-ill);
+//	cout << "vl size: " << vs.size() << endl;
+////	for(set<string>::iterator iter = vs.begin(); iter != vs.end(); iter ++) cout << *iter << endl;
+////	prec = testHit/testAll;
+//
+//	//
+//}
 void loadTime(map<int,lvec> &time, ivec &rank_user, lvec &rank_time) {
 	int len = rank_user.size();
 	for(int i = 0; i < len; i++) {

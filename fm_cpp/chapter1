@@ -1,0 +1,225 @@
+
+
+引言
+
+过去几年，蜂窝网络技术持续着迅猛增长的态势．尤其在数据通信方面，已经保持着每年一个
+数量级的增长，早已经把语音通信远远甩在后面．到2016年，全球移动数据通信预期将增长
+到每个月10.8 exabytes(1exa=10^18),是2011年的18倍[1].这一不可预期的增长正在对现存
+的蜂窝网络提出新的挑战．移动数据卸载是应对这一挑战提出的新理念，它指利用现存的互补
+网络技术以及创新的数据传输技术，来缓解在蜂窝网络中的拥塞以及使得网络资源被更好地
+利用．数据卸载的目标是维持用户在网络中的服务质量，同时减少数据传输饥饿带来的影响．
+随着数据通信在移动网络中的持续增长，数据卸载将在不久的将来成为蜂窝网络中关键的组成
+部分．
+
+ [1]“Cisco Visual Networking Index: Global Mobile Data
+Traffic Forecast Update, 2011–2016,” white paper by
+Cisco, Feb. 2012, http://www.cisco.com/en/US/solutions/collateral/ns341/ns525/ns537/ns705/ns827/white_p
+aper_c11-520862.pdf, accessed Feb 2012. 
+
+数据卸载的最初驱动因素是数据通信的兴起．数据通信的正在对蜂窝网络中产生更多的拥塞
+并最终降低用户的体验．这一兴起归咎于如下因素：
+1.逐渐普及的高性能移动设备，如移动手机，平板电脑等．这些设备将产生是基本功能的移动
+手机将近35倍的数据量．
+2.每个设备的通信量的增长．由于数据通信速度的提升以及移动设备电池续航量的提升，每个
+设备将占用信道更多的时间数量占比．
+3.移动视频内容数量的增长．移动视频比其他的网络内容有更高的码率，加之设备不断扩大的
+屏幕都将需要更多的数据传输．
+4.随着移动宽带的引入．移动宽带的定价已经可以与固定宽带的定价比拟，加之日益流行的
+普适移动计算都是用户数量不断增长．
+
+无线网络视频传输已经成为无线通信进步的主要驱动力，而且其影响力还在继续增长．无线
+网络中的视频一般指的是简短的视频片段（例如YouTube或者新闻频道），这些视频一般在
+小型移动设备设备上显示．移动设备的不断更新换代，性能不断的提升，使得在移动设备上
+观看视频已经成为生活的常态．增长的用户群，不断提升的分辨率已经越来越大的设备屏幕
+大大增加了无线传输的负载，导致视频传输占据着无线通信中的主要负载类型．近期的工业
+界估计视频传输很快就要超越普通的互联网内容传输，并且将网络流量提升两个数量级．
+尽管更多的用户得到了满足，更多新的商业模型由此孕育而生，这些发展将严重威胁到如今
+已经接近饱和状态的蜂窝网络．
+
+<< 移动设备流量图 >>
+
+为了提升蜂窝网络的能力，传统的策略是使用如下方法：
+１．提升发送者到接收者之间的物理层链路的能力．然而，第四代蜂窝网络(LTE-Advanced)
+和无线局域网(IEEE 802.11n/ac)所使用的物理层已经将频谱利用率逼近到一个理论的上届，
+在这方面的更多提升十分的优先．
+
+２．使用其他的频段．在最好的情况下，我们可以将频段利用率提升到两倍利用率，这远远
+无法满足对数据需求的增长．
+
+３．缩小蜂窝的大小进而提升区域频谱利用率．这虽然是一个有效的方法，但是存在的问题是
+建立新的蜂窝网基站以及提供相应的传输能力的代价太大．
+
+为了提升蜂窝网络的整体吞吐量，研究人员开始注意到设备之间传输(D2D)可能带来的好处．
+这种传输方式充分挖掘现代移动设备上充足的存储空间，每个设备存储一定数量的流行视频，
+当一个请求发出之后，周围存在缓存的设备就通过D2D链接将视频传输到请求方．因为传输方
+和接收方之间的距离大多数情况下很短，在一个蜂窝网络中就能够同时存在多个D2D连接，进而
+带来了频谱效率的巨大提升．
+
+Ad Hoc 网络
+
+冗余的视频请求和设备之间传输的技术已经成为了提升蜂窝网络吞吐量的主要思路．在
+D2D扩展而来的Ad Hoc网络是解决传输问题的一种解决方案，Ad Hoc通过在无线网络中建立
+一个多条网络，让设备之间通信的能力不受限与物理信道，从而扩大无线网络的规模．相比
+于D2D传输方式，Ad Hoc网络能够承载更大的用户基数，从而提供更多的缓存．
+
+传统的无线传输技术提供设备之间的直接通信(蓝牙和802.11)，直接通信指在无线通信接口的
+传输范围之内的通信，这就使得一跳的ad hoc网络称为可能．在此之上，人们发觉在无线设备
+上的多跳传输的可能性．在多跳ad hoc网络中，设备之间通信的目的不仅是为了传输数据，
+同时还为了转发网络中其他节点的数据．为了达到多跳传输的目的，在无线网络中有一套专门
+设计的路由协议，来维护各个节点之间的路由信息．
+
+<< ad hoc 网络示意图 >>
+
+建立在ad hoc之上，可以进行各种数据的传输．典型的传输就包括视频传输，尽管ad hoc网络
+所使用的频带与蜂窝网络不同，但是设备之间的通信必须在相同的频带上进行．基于此，在
+ad hoc网络之中，各个节点之间相互传输视频资源还是会引发激烈的信道争用．为此，传统
+网络中减少网络拥塞的方法必须再一次应用到ad hoc网络之中．其中最有效的一个策略就是
+视频缓存．
+
+移动视频缓存技术
+
+当移动设备请求互联网上的一个视频之后，该视频必须从CDN的服务器中取出.CDN帮助减少了
+互联网的带宽使用，同时减少了视频播放的延时和抖动．但是视频必须进一步通过无线运营商
+的核心网络到达基站，最终通过无线传输的形式到达用户设备．无论是运营商的设备网络还是
+终端所在的无线网络，都可能成为传输的一个瓶颈．相关工作已经将在基站上进行视频缓存的
+策略进行考虑.
+
+然而对于大用户群体的区域,即使提供了基站缓存也无济于事．根据"Gupta-Kumar"限制[11],
+如果有n个节点试图进行通信(即形成n/2个通信对),每个节点的吞吐量将随着n的增加而减少，
+衰减的幅度将是$1/\sqrt{n}$.但是，如果有足够的内容复用，使用设备间传输以及缓存的方式，
+每个节点将得到不受影响的吞吐量[12].
+
+[11] P. Gupta and P. Kumar, “The capacity of wireless networks,” IEEE Trans.
+Inf. Theory, vol. 46, no. 2, pp. 388–404, Mar. 2000.
+[12] N. Golrezaei, A. G. Dimakis, and A. F. Molisch, “Wireless device-todevice
+communications with distributed caching,” in Proc. ISIT, 2012,
+pp. 2781–2785.
+
+本文假设的缓存策略即建立在ad hoc网络之上．即，我们假设在视频传输应用之下有一个ad hoc
+网络作为支撑．因此，任何传输在底层对于我们都是透明的．这样，在网络中用户手中的移动
+设备就构成了一个分布式的缓存，缓存内容即为用户看过的那些视频．每个用户通过监听网络
+中的视频数据，能够有效缓存可用的数据．
+
+<< 分布式视频缓存示意图 >>
+
+然而，用户设备的存储空间有限，而视频的数量庞大．因此，决定缓存哪些内容成为了亟待解决
+的问题．对于互联网视频的缓存，一个有效策略就是使用推荐技术。
+
+推荐技术
+
+网络商城的出现和发展对消费者的购物习惯有着深远的影响，人们在网络环境下能够访问到不同
+类别的商品以及每个商品的不同信息．尽管选择的自由性给这个市场带来了巨大的财富，但是这
+也使得用户选择最适合的产品变得异常困难．解决这类＂信息过载＂问题主要的方法便是推荐系统．
+推荐系统通过向用户自动化地给出个性化的推荐，避免用户进行痛苦的筛选．推荐系统已经被用到
+多个领域，例如推荐书，本与CD[47,53],音乐[45,70],电影[31,51,5],新闻[6,41,76],笑话[23],以及
+网页[7,52].
+7. Billsus, D., Pazzani, M.J.: Learning collaborative information filters. In: ICML ’98: Proc. of
+the 15th Int. Conf. on Machine Learning, pp. 46–54. Morgan Kaufmann Publishers Inc., San
+Francisco, CA, USA (1998)
+23. Goldberg, K., Roeder, T., Gupta, D., Perkins, C.: Eigentaste: A constant time collaborative
+filtering algorithm. Information Retrieval 4(2), 133–151 (2001)
+47. Linden, G., Smith, B., York, J.: Amazon.com recommendations: Item-to-item collaborative
+filtering. IEEE Internet Computing 7(1), 76–80 (2003)
+53. Mooney, R.J.: Content-based book recommending using learning for text categorization. In:
+Proc. of the Fifth ACM Conf. on Digital Libraries, pp. 195–204. ACM Press (2000)
+45. Last.fm: Music recommendation service (2009). http://www.last.fm
+70. Shardanand, U., Maes, P.: Social information filtering: Algorithms for automating “word of
+mouth”. In: CHI ’95: Proc. of the SIGCHI Conf. on Human factors in Computing Systems,
+pp. 210–217. ACM Press/Addison-Wesley Publishing Co., New York, NY, USA (1995)
+31. Hill, W., Stead, L., Rosenstein, M., Furnas, G.: Recommending and evaluating choices in a
+virtual community of use. In: CHI ’95: Proc. of the SIGCHI Conf. on Human Factors in
+Computing Systems, pp. 194–201. ACM Press/Addison-Wesley Publishing Co., New York,
+NY, USA (1995)
+51. Miller, B.N., Albert, I., Lam, S.K., Konstan, J.A., Riedl, J.: Movielens unplugged: experiences
+with an occasionally connected recommender system. In: IUI ’03: Proc. of the 8th Int. Conf.
+on Intelligent User Interfaces, pp. 263–266. ACM, New York, NY, USA (2003)
+5. Bell, R.M., Koren, Y.: Scalable collaborative filtering with jointly derived neighborhood interpolation
+weights. In: ICDM ’07: Proc. of the 2007 Seventh IEEE Int. Conf. on Data Mining,
+pp. 43–52. IEEE Computer Society, Washington, DC, USA (2007)
+6. Billsus, D., Brunk, C.A., Evans, C., Gladish, B., Pazzani, M.: Adaptive interfaces for ubiquitous
+web access. Communications of the ACM 45(5), 34–38 (2002)
+41. Konstan, J.A., Miller, B.N., Maltz, D., Herlocker, J.L., Gordon, L.R., Riedl, J.: GroupLens:
+applying collaborative filtering to usenet news. Communications of the ACM 40(3), 77–87
+(1997)
+76. Terveen, L., Hill, W., Amento, B., McDonald, D., Creter, J.: PHOAKS: a system for sharing
+recommendations. Communications of the ACM 40(3), 59–62 (1997)
+52. Mobasher, B., Dai, H., Luo, T., Nakagawa, M.: Discovery and evaluation of aggregate usage
+profiles for Web personalization. Data Mining and Knowledge Discovery 6(1), 61–82 (2002)
+推荐问题可以被定义为：根据用户在系统中的历史信息，古迹用户对一个新的物品的反馈，同时向
+用户提供预测反馈较高的独特有趣的物品的推荐．用户对物品的反馈信息在不同应用领域中各不相同，
+基本上落入如下三类：标量，二值和单值．标量反馈也叫评分，一般是数值类型或者顺序类型，代表
+用户对物品所有的认同级别．另一方面，二值反馈只有两种可能的取值，代表对物品的相反的两种
+态度(喜欢/不喜欢，感兴趣/不敢兴趣)．单值反馈记录用户与物品的一次交互信息(例如购买，在线访问),
+却没有显式地给出用户对这类物品的认同程度．因为大多数用户倾向于和感兴趣的物品产生交互，单值
+数据在提供用户偏好这方面还是十分有用的．
+
+在推荐领域的学者面临着几个挑战，这些挑战对它们所提出的算法的性能和使用造成了威胁，这里
+列出其中最关键的几个：
+1.数据稀疏性．通常情况下，可推荐的物品的总量非常庞大，任意两个用户之间很难存在交集或者
+仅有几个交集物品．即使整个系统平均的(用户-物品)交互很高，它们通常存在分布不均匀的现象
+(通常，它们遵循power-law分布[26]或者Weibull分布[27])．
+因此，用户或者物品的大部分成员只有优先的偏好反馈．因此，一个有效的推荐算法必须将数据的
+稀疏性考虑在内[28].
+
+2.可扩展性．虽然数据是稀疏的，但是大多数网站包含着上百万数量的用户和物品．因此，一个关键
+问题就是要考虑计算开销问题，所设计的推荐算法必须计算开销低或者容易并行化．另一个解决方案
+是使用增量式更新的算法，这类算法伴随着数据的增加，推荐模型无需整体重新计算，而是逐渐进行
+调整[29,30]．
+
+3.冷启动问题.当一个新用户加入系统，系统通常缺乏足够的信息为他们提供推荐．应对这一问题的
+通常策略是使用混合推荐技术，结合基于内容推荐与协同数据推荐方法．另一个方法是在其他网络
+服务中识别个体用户，这样针对一个在A网站的冷启动用户,我们能够根据其在网站B,C,D中的历史
+数据进行推荐．
+
+应对这些问题，一个常用的策略是从多个数据源中构建推荐模型．在本文中，我们也试图解决这类问题，
+然而不同的是，我们试图在算法层面上解决问题，通过充分挖掘数据中可用的信息来达到
+减少数据稀疏效果．
+
+[26] M.E.J. Newman, Power laws Pareto distributions and Zipf’s law, Contemporary Physics 46 (2005) 323–351.
+[27] W. Weibull, A statistical distribution function of wide applicability, J. Appl. Mech.-Trans. ASME 18 (3) (1951) 293–297.
+[28] Z. Huang, H. Chen, D. Zeng, Applying associative retrieval techniques to alleviate the sparsity problem in collaborative filtering, ACM Transactions
+on Information Systems 22 (2004) 116–142.
+[29] B. Sarwar, J. Konstan, J. Riedl, Incremental singular value decomposition algorithms for highly scalable recommender systems, in: International
+Conference on Computer and Information Science, 2002, pp. 27–28.
+[30] C.-H. Jin, J.-G. Liu, Y.-C. Zhang, T. Zhou, Adaptive information filtering for dynamics recommender systems, arXiv:0911.4910, 2009.
+
+本文组织结构
+
+１．第一章节介绍相关研究背景，简单介绍了无线视频传输的现状，ad hoc网络，视频缓存技术以及
+推荐技术，并对本文的组织结构进行了介绍．
+
+２．第二章节介绍视频缓存的相关工作，重点介绍推荐系统的现有成果．
+３．第三章节介绍我们的视频推荐算法，我们的算法试图同多个不同反馈现象中得到更精确的推荐
+模型
+４．第四章节从系统设计层面说明如何将推荐技术应用于流媒体推荐，同时给出了模拟实验的结果．
+５．第五章节总结工作，提出下一步研究工作的分析和展望．
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

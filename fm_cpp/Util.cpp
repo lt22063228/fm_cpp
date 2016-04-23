@@ -88,11 +88,11 @@ ivec sort_indexes(dvec &v, int topK, int u) {
 //	if(u == 1) {
 //		cout << "3" << endl;
 //	}
-	std::vector<int> res;
+	ivec res(topK);
 	for(int i = topK-1; i >= 0; i--) {
 		int top = q.top().second;
 		q.pop();
-		res.push_back(top);
+		res[i] = top;
 	}
 	return res;
 }
